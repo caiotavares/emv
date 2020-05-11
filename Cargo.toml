@@ -1,0 +1,10 @@
+[package]
+name = "emv"
+version = "0.1.0"
+authors = ["Caio Tavares <caio.tavares11@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+pcsc = { version = "2.4.0", path = "../pcsc" }
