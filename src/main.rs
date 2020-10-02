@@ -1,17 +1,17 @@
+extern crate pcsc;
+
 mod lib;
 mod aid;
-
-extern crate pcsc;
 
 use pcsc::*;
 use lib::*;
 
-// APDUs
-pub const SELECT: &[u8] = b"\x00\xA4\x04\x00";
-pub const GET_RESPONSE: &[u8] = b"\xA0\xC0\x00\x00";
-
-fn select(aid: &[u8; 7]) -> impl APDU + '_ {
+fn select<'data>(aid: &'data [u8; 7]) -> impl APDU + 'data {
     APDU3::new(0x00, 0xA4, 0x04, 0x00, 0x07, aid)
+}
+
+fn get_response(length: u8) -> impl APDU {
+    APDU2::new(0xA0, 0xC0, 0x00, 0x00, length)
 }
 
 fn main() {
@@ -41,7 +41,7 @@ fn send(card: Card, apdu: impl APDU) {
 
     // TODO: Get the response length from status code and set the resp_buf to it's size
     let mut response_buffer = [0; MAX_BUFFER_SIZE];
-    let response = match card.transmit(&[GET_RESPONSE, b"\x52"].concat(), &mut response_buffer) {
+    let response = match card.transmit(&get_response(status.sw2).to_array(), &mut response_buffer) {
         Ok(resp) => resp,
         Err(err) => {
             eprintln!("Failed to transmit APDU command to card: {}", err);
