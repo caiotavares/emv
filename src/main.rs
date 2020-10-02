@@ -30,17 +30,22 @@ fn send(card: Card, apdu: impl APDU) {
     println!("Sending APDU: {:02X?}", apdu.to_array());
     let mut status_buffer = [0; MAX_BUFFER_SIZE];
     let status = match card.transmit(&apdu.to_array(), &mut status_buffer) {
-        Ok(rapdu) => lib::Status { sw1: rapdu[0], sw2: rapdu[1] },
+        Ok(rapdu) => lib::Status { sw1: SW1::from_byte(rapdu[0]), sw2: rapdu[1] },
         Err(err) => {
             eprintln!("Failed to transmit APDU command to card: {}", err);
             std::process::exit(1);
         }
     };
 
-    println!("Status: {:02X?}", status);
+    match status.sw1 {
+        SW1::ResponseAvailable => { read_response(card, status.sw2) },
+        _ => { println!("Status NOK: {:02X?}", status)}
+    }
+}
 
+fn read_response(card: Card, length: u8) {
     let mut response_buffer = [0; MAX_BUFFER_SIZE];
-    let response = match card.transmit(&get_response(status.sw2).to_array(), &mut response_buffer) {
+    let response = match card.transmit(&get_response(length).to_array(), &mut response_buffer) {
         Ok(resp) => resp,
         Err(err) => {
             eprintln!("Failed to transmit APDU command to card: {}", err);

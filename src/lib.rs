@@ -1,5 +1,28 @@
 #[derive(Debug)]
-pub struct Status { pub sw1: u8, pub sw2: u8 }
+pub struct Status { pub sw1: SW1, pub sw2: u8 }
+
+#[derive(Debug)]
+pub enum SW1 {
+    ResponseAvailable = 0x61,
+    NonVolatileMemoryUnchanged = 0x62,
+    NonVolatileMemoryChanged = 0x63,
+    NonVolatileMemoryUnchanged2 = 0x64,
+    NonVolatileMemoryChanged2 = 0x65,
+    FunctionNotSupported = 0x68,
+    CommandNotAllowed = 0x69,
+    WrongParameters = 0x6A,
+    WrongLength = 0x6C,
+    InternalException = 0x6F,
+}
+
+impl SW1 {
+    pub fn from_byte(value: u8) -> EStatus {
+        match value {
+            0x61 => EStatus::ResponseAvailable,
+            _ => panic!("Unkown status value: {}", value)
+        }
+    }
+}
 
 pub trait APDU {
     fn to_array(&self) -> Vec<u8>;
