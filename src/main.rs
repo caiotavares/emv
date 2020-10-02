@@ -39,7 +39,6 @@ fn send(card: Card, apdu: impl APDU) {
 
     println!("Status: {:02X?}", status);
 
-    // TODO: Get the response length from status code and set the resp_buf to it's size
     let mut response_buffer = [0; MAX_BUFFER_SIZE];
     let response = match card.transmit(&get_response(status.sw2).to_array(), &mut response_buffer) {
         Ok(resp) => resp,
