@@ -15,7 +15,7 @@ pub struct APDU2 { cla: u8, ins: u8, p1: u8, p2: u8, lc: u8 }
 pub struct APDU3<'data> { cla: u8, ins: u8, p1: u8, p2: u8, lc: u8, data: &'data [u8] }
 
 #[derive(Debug)]
-pub struct APDU4<'a> { cla: u8, ins: u8, p1: u8, p2: u8, lc: u8, data: &'a [u8], le: u8 }
+pub struct APDU4<'data> { cla: u8, ins: u8, p1: u8, p2: u8, lc: u8, data: &'data [u8], le: u8 }
 
 impl APDU1 {
     pub fn new(cla: u8, ins: u8, p1: u8, p2: u8) -> APDU1 {
@@ -35,7 +35,7 @@ impl<'data> APDU3<'data> {
     }
 }
 
-impl<'a> APDU4<'a> {
+impl<'data> APDU4<'data> {
     pub fn new(cla: u8, ins: u8, p1: u8, p2: u8, lc: u8, data: &[u8], le: u8) -> APDU4 {
         APDU4 { cla, ins, p1, p2, lc, data, le }
     }
@@ -55,12 +55,17 @@ impl APDU for APDU2 {
 
 impl<'data> APDU for APDU3<'data> {
     fn to_array(&self) -> Vec<u8> {
-        [self.cla, self.ins, self.p1, self.p2, self.lc, 0xA0, 0x00, 0x00, 0x00, 0x04, 0x10, 0x10].to_vec()
+        let mut vec = [self.cla, self.ins, self.p1, self.p2, self.lc].to_vec();
+        vec.extend_from_slice(self.data);
+        vec
     }
 }
 
-impl<'a> APDU for APDU4<'a> {
+impl<'data> APDU for APDU4<'data> {
     fn to_array(&self) -> Vec<u8> {
-        [self.cla, self.ins, self.p1, self.p2, self.lc, self.le].to_vec()
+        let mut vec = [self.cla, self.ins, self.p1, self.p2, self.lc].to_vec();
+        vec.extend_from_slice(self.data);
+        vec.push(self.le);
+        vec
     }
 }
