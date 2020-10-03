@@ -1,99 +1,44 @@
 extern crate pcsc;
 
 mod lib;
-mod aid;
+mod connection;
 
-use pcsc::*;
 use lib::*;
-
-fn select<'data>(aid: &'data [u8; 7]) -> impl APDU + 'data {
-    APDU3::new(0x00, 0xA4, 0x04, 0x00, 0x07, aid)
-}
-
-fn get_response(length: u8) -> impl APDU {
-    APDU2::new(0xA0, 0xC0, 0x00, 0x00, length)
-}
+use lib::rapdu::{RAPDU, Status};
+use std::process;
 
 fn main() {
-    let card = connect();
+    let card = connection::connect();
     match card {
-        Some(card) => run(card),
-        None => println!("No card detected!")
-    }
-}
-
-fn run(card: Card) {
-    send(card, select(&aid::MASTERCARD_CREDIT))
-}
-
-fn send(card: Card, apdu: impl APDU) {
-    println!("Sending APDU: {:02X?}", apdu.to_array());
-    let mut status_buffer = [0; MAX_BUFFER_SIZE];
-    let status = match card.transmit(&apdu.to_array(), &mut status_buffer) {
-        Ok(rapdu) => lib::Status { sw1: SW1::from_byte(rapdu[0]), sw2: rapdu[1] },
-        Err(err) => {
-            eprintln!("Failed to transmit APDU command to card: {}", err);
-            std::process::exit(1);
-        }
-    };
-
-    match status.sw1 {
-        SW1::ResponseAvailable => { read_response(card, status.sw2) },
-        _ => { println!("Status NOK: {:02X?}", status)}
-    }
-}
-
-fn read_response(card: Card, length: u8) {
-    let mut response_buffer = [0; MAX_BUFFER_SIZE];
-    let response = match card.transmit(&get_response(length).to_array(), &mut response_buffer) {
-        Ok(resp) => resp,
-        Err(err) => {
-            eprintln!("Failed to transmit APDU command to card: {}", err);
-            std::process::exit(1);
-        }
-    };
-    println!("Response: {:02X?}", response)
-}
-
-fn connect() -> Option<Card> {
-    let ctx = match Context::establish(Scope::User) {
-        Ok(ctx) => ctx,
-        Err(err) => {
-            eprintln!("Failed to establish context: {}", err);
-            std::process::exit(1);
-        }
-    };
-
-    // List available readers.
-    let mut readers_buf = [0; 2048];
-    let mut readers = match ctx.list_readers(&mut readers_buf) {
-        Ok(readers) => readers,
-        Err(err) => {
-            eprintln!("Failed to list readers: {}", err);
-            std::process::exit(1);
-        }
-    };
-
-    // Use the first reader.
-    let reader = match readers.next() {
-        Some(reader) => reader,
+        Some(card) => select_application(card, aid::MASTERCARD_CREDIT),
         None => {
-            println!("No readers are connected.");
-            return None;
+            println!("No card detected!");
+            process::exit(1);
         }
-    };
-    println!("Using reader: {:?}", reader);
+    }
+}
 
-    // Connect to the card and return it.
-    match ctx.connect(reader, ShareMode::Shared, Protocols::ANY) {
-        Ok(card) => Some(card),
-        Err(Error::NoSmartcard) => {
-            println!("A smartcard is not present in the reader.");
-            return None;
-        }
-        Err(err) => {
-            eprintln!("Failed to connect to card: {}", err);
-            std::process::exit(1);
-        }
+fn select_application(card: pcsc::Card, aid: [u8; 7]) {
+    let response = connection::transmit(&card, capdu::select(&aid)).unwrap_or_else(|err| {
+        println!("Error trying to SELECT application: {}", err);
+        process::exit(1);
+    });
+
+    match response {
+        RAPDU { status: Status::ResponseAvailable { length }, .. } => (read_response(card, length)),
+        _ => { println!("Unknown status!") }
+    }
+}
+
+fn read_response(card: pcsc::Card, length: u8) {
+    let response = connection::transmit(&card, capdu::get_response(length)).unwrap_or_else(|err| {
+        println!("Error trying to READ RESPONSE: {}", err);
+        process::exit(1);
+    });
+
+    // TODO: The status for GET RESPONSE commands are sent as trailing bytes instead of header :|
+    match response {
+        RAPDU { status: Status::Ok, data } => { println!("Response: {:02X?}", data); }
+        _ => { println!("Unknown status!") }
     }
 }
