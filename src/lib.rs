@@ -2,6 +2,17 @@ pub enum Error {
     UnknownTLV
 }
 
+trait Extendable {
+    fn extend(&self, value: u8) -> u16;
+}
+
+impl Extendable for u8 {
+    fn extend(&self, value: u8) -> u16 {
+        let left = (*self as u16) << 8;
+        left | (value as u16)
+    }
+}
+
 pub mod aid {
     pub const MASTERCARD_MAESTRO: [u8; 7] = [0xA0, 0x00, 0x00, 0x00, 0x04, 0x30, 0x60];
     pub const MASTERCARD_CREDIT: [u8; 7] = [0xA0, 0x00, 0x00, 0x00, 0x04, 0x10, 0x10];
@@ -38,8 +49,7 @@ pub mod rapdu {
         }
 
         fn check_sw2(sw1: u8, sw2: u8) -> Status {
-            let combined_status = [sw1, sw2];
-            match combined_status {
+            match [sw1, sw2] {
                 [0x90, 0x00] => Status::Ok,
                 _ => Status::Unknown
             }
@@ -56,7 +66,7 @@ pub mod capdu {
     struct APDU1 { cla: u8, ins: u8, p1: u8, p2: u8 }
 
     #[derive(Debug)]
-    struct APDU2 { cla: u8, ins: u8, p1: u8, p2: u8, lc: u8 }
+    struct APDU2 { cla: u8, ins: u8, p1: u8, p2: u8, le: u8 }
 
     #[derive(Debug)]
     struct APDU3 { cla: u8, ins: u8, p1: u8, p2: u8, lc: u8, data: Vec<u8> }
@@ -71,8 +81,8 @@ pub mod capdu {
     }
 
     impl APDU2 {
-        pub fn new(cla: u8, ins: u8, p1: u8, p2: u8, lc: u8) -> APDU2 {
-            APDU2 { cla, ins, p1, p2, lc }
+        pub fn new(cla: u8, ins: u8, p1: u8, p2: u8, le: u8) -> APDU2 {
+            APDU2 { cla, ins, p1, p2, le }
         }
     }
 
@@ -96,7 +106,7 @@ pub mod capdu {
 
     impl APDU for APDU2 {
         fn to_array(&self) -> Vec<u8> {
-            [self.cla, self.ins, self.p1, self.p2, self.lc].to_vec()
+            [self.cla, self.ins, self.p1, self.p2, self.le].to_vec()
         }
     }
 
@@ -128,6 +138,29 @@ pub mod capdu {
     pub fn get_data(id1: u8, id2: u8, length: u8) -> impl APDU {
         APDU2::new(0x80, 0xCA, id1, id2, length)
     }
+
+    pub fn get_processing_options() -> impl APDU {
+        APDU3::new(0x80, 0xA8, 0x00, 0x00, 0x02, [0x83, 0x00].to_vec())
+    }
+
+    pub fn read_record(record_id: u8, sfi: u8, length: u8) -> impl APDU {
+        APDU2::new(0x00, 0xB2, record_id, sfi, length)
+    }
+
+    pub fn generate_ac(cdol: Vec<u8>) -> impl APDU {
+        let length = cdol.len() as u8;
+        APDU3::new(0x80, 0xAE, 0x80, 0x00, length, cdol)
+    }
+
+    pub fn unblock_pin(mac: Vec<u8>) -> impl APDU {
+        let length = mac.len() as u8;
+        APDU3::new(0x84, 0x24, 0x00, 0x00, length, mac)
+    }
+
+    pub fn verify(pin: Vec<u8>) -> impl APDU {
+        let length = pin.len() as u8;
+        APDU3::new(0x00, 0x20, 0x00, 0x80, length, pin)
+    }
 }
 
 pub mod tlv {
@@ -144,6 +177,7 @@ pub mod tlv {
         LanguagePreference,
         IssuerCodeTableIndex,
         ApplicationPreferredName,
+        PinTryCounter,
         LogEntry,
         UnknownTag,
     }
@@ -160,6 +194,7 @@ pub mod tlv {
                 0x5F2D => Some(Tag::LanguagePreference),
                 0x9F11 => Some(Tag::IssuerCodeTableIndex),
                 0x9F12 => Some(Tag::ApplicationPreferredName),
+                0x9F17 => Some(Tag::PinTryCounter),
                 0x9F4D => Some(Tag::LogEntry),
                 0x9F5D => Some(Tag::UnknownTag),
                 0x9F6E => Some(Tag::UnknownTag),
@@ -173,23 +208,5 @@ pub mod tlv {
         tag: Tag,
         length: u8,
         value: Vec<u8>,
-    }
-
-    impl TLV {
-        pub fn new(data: Vec<u8>) -> Result<TLV, Error> {
-            let mut iterator = data.iter();
-            let byte = iterator.next().unwrap_or(&0x00);
-
-            match Tag::from(*byte as u16) {
-                Some(tag) => {
-                    let length = iterator.next().unwrap();
-                    let value = iterator.take(usize::from(*length)).cloned().collect::<Vec<u8>>();
-                    let tlv = TLV { tag, length: length.clone(), value };
-                    println!("TLV: {:02X?}", tlv);
-                    Ok(tlv)
-                }
-                None => Err(Error::UnknownTLV)
-            }
-        }
     }
 }
