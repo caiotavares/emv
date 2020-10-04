@@ -21,13 +21,13 @@ fn main() {
 
 fn select_application(card: pcsc::Card, aid: [u8; 7]) {
     let response = connection::transmit(&card, capdu::select(&aid)).unwrap_or_else(|err| {
-        println!("Error trying to SELECT application: {}", err);
+        println!("Error on SELECT application: {}", err);
         process::exit(1);
     });
 
     println!("Status: {:02X?}", response.status);
     let data = match response {
-        RAPDU { status: Status::ResponseAvailable { length }, .. } => (read_response(card, length)),
+        RAPDU { status: Status::ResponseAvailable { length }, .. } => (read_response(&card, length)),
         _ => {
             println!("Unknown status!");
             Vec::new()
@@ -35,10 +35,17 @@ fn select_application(card: pcsc::Card, aid: [u8; 7]) {
     };
 
     TLV::new(data);
+
+    let pin = connection::transmit(&card, capdu::get_data(0x9F, 0x17, 0x04)).unwrap_or_else(|err| {
+        println!("Error on GET DATA: {}", err);
+        process::exit(1);
+    });
+    println!("Status: {:02X?}", pin.status);
+    println!("Status: {:02X?}", pin.data);
 }
 
-fn read_response(card: pcsc::Card, length: u8) -> Vec<u8> {
-    let response = connection::transmit(&card, capdu::get_response(length)).unwrap_or_else(|err| {
+fn read_response(card: &pcsc::Card, length: u8) -> Vec<u8> {
+    let response = connection::transmit(card, capdu::get_response(length)).unwrap_or_else(|err| {
         println!("Error trying to READ RESPONSE: {}", err);
         process::exit(1);
     });

@@ -23,6 +23,7 @@ pub mod rapdu {
     #[derive(Debug)]
     pub enum Status {
         ResponseAvailable { length: u8 },
+        WrongLength { length: u8 },
         Ok,
         Unknown,
     }
@@ -31,6 +32,7 @@ pub mod rapdu {
         pub fn new(sw1: u8, sw2: u8) -> Status {
             match sw1 {
                 0x61 => Status::ResponseAvailable { length: sw2 },
+                0x6C => Status::WrongLength { length: sw2 },
                 _ => Status::check_sw2(sw1, sw2)
             }
         }
@@ -121,6 +123,10 @@ pub mod capdu {
 
     pub fn get_response(length: u8) -> impl APDU {
         APDU2::new(0xA0, 0xC0, 0x00, 0x00, length)
+    }
+
+    pub fn get_data(id1: u8, id2: u8, length: length) -> impl APDU {
+        APDU2::new(0x80, 0xCA, id1, id2, length)
     }
 }
 
