@@ -4,6 +4,7 @@ pub mod aid {
 }
 
 pub mod rapdu {
+    #[derive(Debug)]
     pub struct RAPDU {
         pub status: Status,
         pub data: Vec<u8>,
@@ -15,6 +16,7 @@ pub mod rapdu {
         }
     }
 
+    #[derive(Debug)]
     pub enum Status {
         ResponseAvailable { length: u8 },
         Ok,
@@ -31,10 +33,8 @@ pub mod rapdu {
 
         fn check_sw2(sw1: u8, sw2: u8) -> Status {
             let combined_status = [sw1, sw2];
-            println!("STATUS: {:02X?}", combined_status);
             match combined_status {
                 [0x90, 0x00] => Status::Ok,
-                [0x6F, 0x50] => Status::Ok,
                 _ => Status::Unknown
             }
         }

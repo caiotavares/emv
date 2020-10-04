@@ -24,6 +24,7 @@ fn select_application(card: pcsc::Card, aid: [u8; 7]) {
         process::exit(1);
     });
 
+    println!("Status: {:02X?}", response.status);
     match response {
         RAPDU { status: Status::ResponseAvailable { length }, .. } => (read_response(card, length)),
         _ => { println!("Unknown status!") }
@@ -36,7 +37,7 @@ fn read_response(card: pcsc::Card, length: u8) {
         process::exit(1);
     });
 
-    // TODO: The status for GET RESPONSE commands are sent as trailing bytes instead of header :|
+    println!("Status: {:02X?}", response.status);
     match response {
         RAPDU { status: Status::Ok, data } => { println!("Response: {:02X?}", data); }
         _ => { println!("Unknown status!") }

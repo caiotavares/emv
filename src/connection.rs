@@ -2,16 +2,24 @@ extern crate pcsc;
 
 use pcsc::*;
 use super::lib::{capdu, rapdu};
-use super::lib as lib;
+use rapdu::{RAPDU, Status};
 
 pub fn transmit(card: &Card, apdu: impl capdu::APDU) -> Result<rapdu::RAPDU, &'static str> {
     println!("Sending APDU: {:02X?}", apdu.to_array());
 
     let mut buffer = [0; MAX_BUFFER_SIZE];
     match card.transmit(&apdu.to_array(), &mut buffer) {
-        Ok(rapdu) => {
-            let status = rapdu::Status::new(rapdu[0], rapdu[1]);
-            Ok(rapdu::RAPDU::new(status, &rapdu[2..]))
+        Ok(response) => {
+            let rapdu;
+            let length = response.len();
+            // Header Status
+            if length == 2 {
+                rapdu = RAPDU::new(Status::new(response[0], response[1]), &response[2..]);
+            } else {
+                // Trailing Status
+                rapdu = RAPDU::new(Status::new(response[length - 2], response[length - 1]), &response[0..length - 3]);
+            }
+            Ok(rapdu)
         }
         Err(err) => {
             eprintln!("Failed to transmit APDU command to card: {}", err);
