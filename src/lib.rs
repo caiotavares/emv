@@ -59,10 +59,10 @@ pub mod capdu {
     struct APDU2 { cla: u8, ins: u8, p1: u8, p2: u8, lc: u8 }
 
     #[derive(Debug)]
-    struct APDU3<'data> { cla: u8, ins: u8, p1: u8, p2: u8, lc: u8, data: &'data [u8] }
+    struct APDU3 { cla: u8, ins: u8, p1: u8, p2: u8, lc: u8, data: Vec<u8> }
 
     #[derive(Debug)]
-    struct APDU4<'data> { cla: u8, ins: u8, p1: u8, p2: u8, lc: u8, data: &'data [u8], le: u8 }
+    struct APDU4 { cla: u8, ins: u8, p1: u8, p2: u8, lc: u8, data: Vec<u8>, le: u8 }
 
     impl APDU1 {
         pub fn new(cla: u8, ins: u8, p1: u8, p2: u8) -> APDU1 {
@@ -76,14 +76,14 @@ pub mod capdu {
         }
     }
 
-    impl<'data> APDU3<'data> {
-        pub fn new(cla: u8, ins: u8, p1: u8, p2: u8, lc: u8, data: &[u8]) -> APDU3 {
+    impl APDU3 {
+        pub fn new(cla: u8, ins: u8, p1: u8, p2: u8, lc: u8, data: Vec<u8>) -> APDU3 {
             APDU3 { cla, ins, p1, p2, lc, data }
         }
     }
 
-    impl<'data> APDU4<'data> {
-        pub fn new(cla: u8, ins: u8, p1: u8, p2: u8, lc: u8, data: &[u8], le: u8) -> APDU4 {
+    impl APDU4 {
+        pub fn new(cla: u8, ins: u8, p1: u8, p2: u8, lc: u8, data: Vec<u8>, le: u8) -> APDU4 {
             APDU4 { cla, ins, p1, p2, lc, data, le }
         }
     }
@@ -100,32 +100,32 @@ pub mod capdu {
         }
     }
 
-    impl<'data> APDU for APDU3<'data> {
+    impl APDU for APDU3 {
         fn to_array(&self) -> Vec<u8> {
             let mut vec = [self.cla, self.ins, self.p1, self.p2, self.lc].to_vec();
-            vec.extend_from_slice(self.data);
+            vec.extend(&self.data);
             vec
         }
     }
 
-    impl<'data> APDU for APDU4<'data> {
+    impl APDU for APDU4 {
         fn to_array(&self) -> Vec<u8> {
             let mut vec = [self.cla, self.ins, self.p1, self.p2, self.lc].to_vec();
-            vec.extend_from_slice(self.data);
+            vec.extend(&self.data);
             vec.push(self.le);
             vec
         }
     }
 
-    pub fn select<'data>(aid: &'data [u8; 7]) -> impl APDU + 'data {
-        APDU3::new(0x00, 0xA4, 0x04, 0x00, 0x07, aid)
+    pub fn select(aid: [u8; 7]) -> impl APDU {
+        APDU3::new(0x00, 0xA4, 0x04, 0x00, 0x07, aid.to_vec())
     }
 
     pub fn get_response(length: u8) -> impl APDU {
         APDU2::new(0xA0, 0xC0, 0x00, 0x00, length)
     }
 
-    pub fn get_data(id1: u8, id2: u8, length: length) -> impl APDU {
+    pub fn get_data(id1: u8, id2: u8, length: u8) -> impl APDU {
         APDU2::new(0x80, 0xCA, id1, id2, length)
     }
 }
