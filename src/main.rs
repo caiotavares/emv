@@ -27,81 +27,69 @@ fn main() {
 }
 
 fn select_application(card: &pcsc::Card, aid: [u8; 7]) {
-    println!("\nC-APDU -> SELECT");
+    println!("\nC-APDU: SELECT");
     connection::transmit(card, capdu::select(aid))
         .map(|response| {
-            println!("Status: {:02X?}", response.status);
+            println!("R-APDU: {:02X?}", response);
             if let RAPDU { status: Status::ResponseAvailable { length }, .. } = response {
-                println!("R-APDU -> {:02X?}", read_response(card, length));
+                println!("R-APDU: {:02X?}", read_response(card, length));
             }
         });
 }
 
 fn read_pin_try_counter(card: &pcsc::Card) {
-    println!("\nC-APDU -> GET DATA");
+    println!("\nC-APDU: GET DATA");
     connection::transmit(card, capdu::get_data(0x9F, 0x17, 0x04))
         .map(|response| {
-            println!("Status: {:02X?}", response.status);
-            println!("R-APDU -> {:02X?}", response.data);
+            println!("R-APDU: {:02X?}", response);
         });
 }
 
 fn read_record(card: &pcsc::Card, record: u8, sfi: u8) {
-    println!("\nC-APDU -> READ RECORD");
+    println!("\nC-APDU: READ RECORD {} / SFI {}", record, sfi);
     connection::transmit(card, capdu::read_record(record, sfi, 0x00))
         .map(|response| {
+            println!("R-APDU: {:02X?}", response);
             if let RAPDU { status: Status::WrongLength { length }, .. } = response {
                 connection::transmit(card, capdu::read_record(record, sfi, length))
                     .map(|actual_response| {
-                        println!("Status: {:02X?}", actual_response.status);
-                        println!("R-APDU -> RECORD {} / SFI {}: {:02X?}", record, sfi, actual_response.data);
+                        println!("R-APDU: {:02X?}", actual_response);
                     });
             }
         });
 }
 
 fn verify_pin(card: &pcsc::Card, pin: Vec<u8>) {
-    println!("\nC-APDU -> VERIFY");
+    println!("\nC-APDU: VERIFY");
     connection::transmit(card, capdu::verify(pin))
         .map(|response| {
-            println!("Status: {:02X?}", response.status);
+            println!("R-APDU: {:02X?}", response);
         });
 }
 
 fn get_processing_options(card: &pcsc::Card) {
-    println!("\nC-APDU -> GET PROCESSING OPTIONS");
+    println!("\nC-APDU: GET PROCESSING OPTIONS");
     connection::transmit(card, capdu::get_processing_options())
         .map(|response| {
-            println!("Status: {:02X?}", response.status);
+            println!("R-APDU: {:02X?}", response);
             if let RAPDU { status: Status::ResponseAvailable { length }, .. } = response {
-                println!("R-APDU -> {:02X?}", read_response(card, length));
+                println!("R-APDU: {:02X?}", read_response(card, length));
             }
         });
 }
 
 fn generate_ac(card: &pcsc::Card, cdol: Vec<u8>) {
-    println!("\nC-APDU -> GENERATE AC");
+    println!("\nC-APDU: GENERATE AC");
     connection::transmit(card, capdu::generate_ac(cdol))
         .map(|response| {
-            println!("Status: {:02X?}", response.status);
+            println!("R-APDU: {:02X?}", response);
             if let RAPDU { status: Status::ResponseAvailable { length }, .. } = response {
-                println!("R-APDU -> {:02X?}", read_response(card, length));
+                println!("R-APDU: {:02X?}", read_response(card, length));
             }
         });
 }
 
-fn read_response(card: &pcsc::Card, length: u8) -> Vec<u8> {
-    println!("\nC-APDU -> GET RESPONSE");
-    connection::transmit(card, capdu::get_response(length))
-        .map_or(
-            Vec::new(),
-            |response| {
-                println!("Status: {:02X?}", response.status);
-                if let RAPDU { status: Status::Ok, data } = response {
-                    data
-                } else {
-                    println!("Unexpected value on READ RESPONSE: {:02X?}", response);
-                    Vec::new()
-                }
-            })
+fn read_response(card: &pcsc::Card, length: u8) -> Option<RAPDU> {
+    println!("\nC-APDU: GET RESPONSE");
+    connection::transmit(card, capdu::get_response(length)).ok()
 }
