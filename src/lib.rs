@@ -1,3 +1,7 @@
+pub enum Error {
+    UnknownTLV
+}
+
 pub mod aid {
     pub const MASTERCARD_MAESTRO: [u8; 7] = [0xA0, 0x00, 0x00, 0x00, 0x04, 0x30, 0x60];
     pub const MASTERCARD_CREDIT: [u8; 7] = [0xA0, 0x00, 0x00, 0x00, 0x04, 0x10, 0x10];
@@ -117,5 +121,69 @@ pub mod capdu {
 
     pub fn get_response(length: u8) -> impl APDU {
         APDU2::new(0xA0, 0xC0, 0x00, 0x00, length)
+    }
+}
+
+pub mod tlv {
+    use super::Error;
+
+    #[derive(Debug)]
+    pub enum Tag {
+        TemplateFCI,
+        ProprietaryTemplateFCI,
+        IssuerDiscretionaryDataFCI,
+        DedicatedFileName,
+        ApplicationLabel,
+        ApplicationPriorityIndicator,
+        LanguagePreference,
+        IssuerCodeTableIndex,
+        ApplicationPreferredName,
+        LogEntry,
+        UnknownTag,
+    }
+
+    impl Tag {
+        pub fn from(value: u16) -> Option<Tag> {
+            match value {
+                0x6F => Some(Tag::TemplateFCI),
+                0xA5 => Some(Tag::ProprietaryTemplateFCI),
+                0x84 => Some(Tag::DedicatedFileName),
+                0x50 => Some(Tag::ApplicationLabel),
+                0x87 => Some(Tag::ApplicationPriorityIndicator),
+                0xBF0C => Some(Tag::IssuerDiscretionaryDataFCI),
+                0x5F2D => Some(Tag::LanguagePreference),
+                0x9F11 => Some(Tag::IssuerCodeTableIndex),
+                0x9F12 => Some(Tag::ApplicationPreferredName),
+                0x9F4D => Some(Tag::LogEntry),
+                0x9F5D => Some(Tag::UnknownTag),
+                0x9F6E => Some(Tag::UnknownTag),
+                _ => None
+            }
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct TLV {
+        tag: Tag,
+        length: u8,
+        value: Vec<u8>,
+    }
+
+    impl TLV {
+        pub fn new(data: Vec<u8>) -> Result<TLV, Error> {
+            let mut iterator = data.iter();
+            let byte = iterator.next().unwrap_or(&0x00);
+
+            match Tag::from(*byte as u16) {
+                Some(tag) => {
+                    let length = iterator.next().unwrap();
+                    let value = iterator.take(usize::from(*length)).cloned().collect::<Vec<u8>>();
+                    let tlv = TLV { tag, length: length.clone(), value };
+                    println!("TLV: {:02X?}", tlv);
+                    Ok(tlv)
+                }
+                None => Err(Error::UnknownTLV)
+            }
+        }
     }
 }

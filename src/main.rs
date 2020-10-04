@@ -3,8 +3,9 @@ extern crate pcsc;
 mod lib;
 mod connection;
 
-use lib::*;
+use lib::{aid, capdu};
 use lib::rapdu::{RAPDU, Status};
+use lib::tlv::{TLV};
 use std::process;
 
 fn main() {
@@ -25,13 +26,18 @@ fn select_application(card: pcsc::Card, aid: [u8; 7]) {
     });
 
     println!("Status: {:02X?}", response.status);
-    match response {
+    let data = match response {
         RAPDU { status: Status::ResponseAvailable { length }, .. } => (read_response(card, length)),
-        _ => { println!("Unknown status!") }
-    }
+        _ => {
+            println!("Unknown status!");
+            Vec::new()
+        }
+    };
+
+    TLV::new(data);
 }
 
-fn read_response(card: pcsc::Card, length: u8) {
+fn read_response(card: pcsc::Card, length: u8) -> Vec<u8> {
     let response = connection::transmit(&card, capdu::get_response(length)).unwrap_or_else(|err| {
         println!("Error trying to READ RESPONSE: {}", err);
         process::exit(1);
@@ -39,7 +45,13 @@ fn read_response(card: pcsc::Card, length: u8) {
 
     println!("Status: {:02X?}", response.status);
     match response {
-        RAPDU { status: Status::Ok, data } => { println!("Response: {:02X?}", data); }
-        _ => { println!("Unknown status!") }
+        RAPDU { status: Status::Ok, data } => {
+            println!("Response: {:02X?}", data);
+            data
+        }
+        _ => {
+            println!("Unknown status!");
+            Vec::new()
+        }
     }
 }

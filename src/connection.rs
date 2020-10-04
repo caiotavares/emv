@@ -15,9 +15,10 @@ pub fn transmit(card: &Card, apdu: impl capdu::APDU) -> Result<rapdu::RAPDU, &'s
             // Header Status
             if length == 2 {
                 rapdu = RAPDU::new(Status::new(response[0], response[1]), &response[2..]);
-            } else {
-                // Trailing Status
-                rapdu = RAPDU::new(Status::new(response[length - 2], response[length - 1]), &response[0..length - 3]);
+            }
+            // Trailing Status
+            else {
+                rapdu = RAPDU::new(Status::new(response[length - 2], response[length - 1]), &response[0..length - 2]);
             }
             Ok(rapdu)
         }
