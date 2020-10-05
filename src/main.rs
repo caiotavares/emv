@@ -32,7 +32,10 @@ fn select_application(card: &pcsc::Card, aid: [u8; 7]) {
         .map(|response| {
             println!("R-APDU: {:02X?}", response);
             if let RAPDU { status: Status::ResponseAvailable { length }, .. } = response {
-                println!("R-APDU: {:02X?}", read_response(card, length));
+                read_response(card, length)
+                    .map(|rapdu| {
+                        println!("R-APDU: {:02X?}", TLV::decode(rapdu.data));
+                    });
             }
         });
 }
@@ -42,7 +45,7 @@ fn read_pin_try_counter(card: &pcsc::Card) {
     connection::transmit(card, capdu::get_data(0x9F, 0x17, 0x04))
         .map(|response| {
             println!("R-APDU: {:02X?}", response);
-            println!("TLV: {:02X?}", TLV::parse(response.data));
+            println!("TLV: {:02X?}", TLV::decode(response.data));
         });
 }
 
@@ -53,8 +56,8 @@ fn read_record(card: &pcsc::Card, record: u8, sfi: u8) {
             println!("R-APDU: {:02X?}", response);
             if let RAPDU { status: Status::WrongLength { length }, .. } = response {
                 connection::transmit(card, capdu::read_record(record, sfi, length))
-                    .map(|actual_response| {
-                        println!("R-APDU: {:02X?}", actual_response);
+                    .map(|rapdu| {
+                        println!("R-APDU: {:02X?}", TLV::decode(rapdu.data));
                     });
             }
         });
@@ -63,8 +66,8 @@ fn read_record(card: &pcsc::Card, record: u8, sfi: u8) {
 fn verify_pin(card: &pcsc::Card, pin: Vec<u8>) {
     println!("\nC-APDU: VERIFY");
     connection::transmit(card, capdu::verify(pin))
-        .map(|response| {
-            println!("R-APDU: {:02X?}", response);
+        .map(|rapdu| {
+            println!("R-APDU: {:02X?}", TLV::decode(rapdu.data));
         });
 }
 
@@ -74,7 +77,10 @@ fn get_processing_options(card: &pcsc::Card) {
         .map(|response| {
             println!("R-APDU: {:02X?}", response);
             if let RAPDU { status: Status::ResponseAvailable { length }, .. } = response {
-                println!("R-APDU: {:02X?}", read_response(card, length));
+                read_response(card, length)
+                    .map(|rapdu| {
+                        println!("R-APDU: {:02X?}", TLV::decode(rapdu.data));
+                    });
             }
         });
 }
@@ -85,7 +91,10 @@ fn generate_ac(card: &pcsc::Card, cdol: Vec<u8>) {
         .map(|response| {
             println!("R-APDU: {:02X?}", response);
             if let RAPDU { status: Status::ResponseAvailable { length }, .. } = response {
-                println!("R-APDU: {:02X?}", read_response(card, length));
+                read_response(card, length)
+                    .map(|rapdu| {
+                        println!("R-APDU: {:02X?}", TLV::decode(rapdu.data));
+                    });
             }
         });
 }

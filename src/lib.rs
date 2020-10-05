@@ -187,20 +187,20 @@ pub mod tlv {
         CryptogramInformationData,
         DedicatedFileName,
         EMVProprietaryTemplate,
+        FileControlInformationIssuerDiscretionaryData,
+        FileControlInformationProprietaryTemplate,
+        FileControlInformationTemplate,
         IssuerActionCodeDefault,
         IssuerActionCodeDenial,
         IssuerActionCodeOnline,
         IssuerApplicationData,
         IssuerCodeTableIndex,
         IssuerCountryCode,
-        IssuerDiscretionaryDataFCI,
         LanguagePreference,
         LogEntry,
         PinTryCounter,
-        ProprietaryTemplateFCI,
         ResponseMessageTemplateFormat2,
         StaticDataAuthenticationTagList,
-        TemplateFCI,
         UnknownTag,
     }
 
@@ -209,16 +209,16 @@ pub mod tlv {
             match value {
                 0x50 => Some(Tag::ApplicationLabel),
                 0x5A => Some(Tag::ApplicationPrimaryAccountNumber),
-                0x6F => Some(Tag::TemplateFCI),
-                0x70 => Some(Tag::EMVProprietaryTemplate),
+                0x6F => Some(Tag::FileControlInformationTemplate),
                 0x77 => Some(Tag::ResponseMessageTemplateFormat2),
                 0x82 => Some(Tag::ApplicationInterchangeProfile),
                 0x84 => Some(Tag::DedicatedFileName),
                 0x87 => Some(Tag::ApplicationPriorityIndicator),
                 0x8C => Some(Tag::CardRiskManagementDataObjectList1),
-                0x8E => Some(Tag::CardRiskManagementDataObjectList2),
+                0x8D => Some(Tag::CardRiskManagementDataObjectList2),
+                0x8E => Some(Tag::CardholderVerificationMethodList),
                 0x94 => Some(Tag::ApplicationFileLocator),
-                0xA5 => Some(Tag::ProprietaryTemplateFCI),
+                0xA5 => Some(Tag::FileControlInformationProprietaryTemplate),
                 _ => None
             }
         }
@@ -230,6 +230,7 @@ pub mod tlv {
                 0x5F28 => Some(Tag::IssuerCountryCode),
                 0x5F2D => Some(Tag::LanguagePreference),
                 0x5F34 => Some(Tag::ApplicationPrimaryAccountNumberSequenceNumber),
+                0x7081 => Some(Tag::EMVProprietaryTemplate),
                 0x9F07 => Some(Tag::ApplicationUsageControl),
                 0x9F0D => Some(Tag::IssuerActionCodeDefault),
                 0x9F0E => Some(Tag::IssuerActionCodeDenial),
@@ -246,8 +247,19 @@ pub mod tlv {
                 0x9F4D => Some(Tag::LogEntry),
                 0x9F5D => Some(Tag::UnknownTag),
                 0x9F6E => Some(Tag::UnknownTag),
-                0xBF0C => Some(Tag::IssuerDiscretionaryDataFCI),
+                0xBF0C => Some(Tag::FileControlInformationIssuerDiscretionaryData),
                 _ => None
+            }
+        }
+
+        pub fn is_template(&self) -> bool {
+            match self {
+                Tag::EMVProprietaryTemplate => true,
+                Tag::ResponseMessageTemplateFormat2 => true,
+                Tag::FileControlInformationTemplate => true,
+                Tag::FileControlInformationProprietaryTemplate => true,
+                Tag::FileControlInformationIssuerDiscretionaryData => true,
+                _ => false
             }
         }
     }
@@ -260,7 +272,7 @@ pub mod tlv {
     }
 
     impl TLV {
-        pub fn parse(data: Vec<u8>) -> Result<TLV, &'static str> {
+        pub fn parse(data: Vec<u8>) -> Result<(TLV, Vec<u8>), &'static str> {
             if data.len() < 2 {
                 return Err("Not enough data to parse TLV!");
             }
@@ -274,9 +286,25 @@ pub mod tlv {
                     Err("Unknown TLV tag!"),
                     |tag| {
                         let length = iter.next().unwrap().clone();
-                        let value: Vec<u8> = iter.take(usize::from(length)).cloned().collect();
-                        Ok(TLV { tag, length, value })
+                        let value: Vec<u8> = iter.as_slice()[0..(usize::from(length))].to_vec();
+                        Ok((TLV { tag, length, value }, iter.as_slice()[(usize::from(length))..].to_vec()))
                     })
+        }
+
+        pub fn decode(data: Vec<u8>) -> Vec<TLV> {
+            let mut result: Vec<TLV> = Vec::new();
+            let mut data = data;
+
+            loop {
+                let (tlv, remainder) = TLV::parse(data).unwrap();
+                if !tlv.tag.is_template() {
+                    result.push(tlv);
+                    if remainder.len() == 0 {
+                        break;
+                    } else { data = remainder; }
+                } else { data = tlv.value; }
+            }
+            result
         }
     }
 }
