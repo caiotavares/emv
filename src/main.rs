@@ -42,6 +42,7 @@ fn read_pin_try_counter(card: &pcsc::Card) {
     connection::transmit(card, capdu::get_data(0x9F, 0x17, 0x04))
         .map(|response| {
             println!("R-APDU: {:02X?}", response);
+            println!("TLV: {:02X?}", TLV::parse(response.data));
         });
 }
 
