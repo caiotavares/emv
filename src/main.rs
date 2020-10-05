@@ -27,8 +27,9 @@ fn main() {
 }
 
 fn select_application(card: &pcsc::Card, aid: [u8; 7]) {
-    println!("\nC-APDU: SELECT");
-    connection::transmit(card, capdu::select(aid))
+    let apdu = capdu::select(aid);
+    println!("\nC-APDU: SELECT: {:02X?}", apdu);
+    connection::transmit(card, apdu)
         .map(|response| {
             println!("R-APDU: {:02X?}", response);
             if let RAPDU { status: Status::ResponseAvailable { length }, .. } = response {
@@ -41,8 +42,9 @@ fn select_application(card: &pcsc::Card, aid: [u8; 7]) {
 }
 
 fn read_pin_try_counter(card: &pcsc::Card) {
-    println!("\nC-APDU: GET DATA");
-    connection::transmit(card, capdu::get_data(0x9F, 0x17, 0x04))
+    let apdu = capdu::get_data(0x9F, 0x17, 0x04);
+    println!("\nC-APDU: GET DATA: {:02X?}", apdu);
+    connection::transmit(card, apdu)
         .map(|response| {
             println!("R-APDU: {:02X?}", response);
             println!("TLV: {:02X?}", TLV::decode(response.data));
@@ -50,10 +52,10 @@ fn read_pin_try_counter(card: &pcsc::Card) {
 }
 
 fn read_record(card: &pcsc::Card, record: u8, sfi: u8) {
-    println!("\nC-APDU: READ RECORD {} / SFI {}", record, sfi);
-    connection::transmit(card, capdu::read_record(record, sfi, 0x00))
+    let apdu = capdu::read_record(record, sfi, 0x00);
+    println!("\nC-APDU: READ RECORD {} / SFI {}: {:02X?}", record, sfi, apdu);
+    connection::transmit(card, apdu)
         .map(|response| {
-            println!("R-APDU: {:02X?}", response);
             if let RAPDU { status: Status::WrongLength { length }, .. } = response {
                 connection::transmit(card, capdu::read_record(record, sfi, length))
                     .map(|rapdu| {
@@ -64,16 +66,18 @@ fn read_record(card: &pcsc::Card, record: u8, sfi: u8) {
 }
 
 fn verify_pin(card: &pcsc::Card, pin: Vec<u8>) {
-    println!("\nC-APDU: VERIFY");
-    connection::transmit(card, capdu::verify(pin))
+    let apdu = capdu::verify(pin);
+    println!("\nC-APDU: VERIFY: {:02X?}", apdu);
+    connection::transmit(card, apdu)
         .map(|rapdu| {
             println!("R-APDU: {:02X?}", TLV::decode(rapdu.data));
         });
 }
 
 fn get_processing_options(card: &pcsc::Card) {
-    println!("\nC-APDU: GET PROCESSING OPTIONS");
-    connection::transmit(card, capdu::get_processing_options())
+    let apdu = capdu::get_processing_options();
+    println!("\nC-APDU: GET PROCESSING OPTIONS: {:02X?}", apdu);
+    connection::transmit(card, apdu)
         .map(|response| {
             println!("R-APDU: {:02X?}", response);
             if let RAPDU { status: Status::ResponseAvailable { length }, .. } = response {
@@ -86,8 +90,9 @@ fn get_processing_options(card: &pcsc::Card) {
 }
 
 fn generate_ac(card: &pcsc::Card, cdol: Vec<u8>) {
-    println!("\nC-APDU: GENERATE AC");
-    connection::transmit(card, capdu::generate_ac(cdol))
+    let apdu = capdu::generate_ac(cdol);
+    println!("\nC-APDU: GENERATE AC: {:02X?}", apdu);
+    connection::transmit(card, apdu)
         .map(|response| {
             println!("R-APDU: {:02X?}", response);
             if let RAPDU { status: Status::ResponseAvailable { length }, .. } = response {
@@ -100,6 +105,7 @@ fn generate_ac(card: &pcsc::Card, cdol: Vec<u8>) {
 }
 
 fn read_response(card: &pcsc::Card, length: u8) -> Option<RAPDU> {
-    println!("\nC-APDU: GET RESPONSE");
-    connection::transmit(card, capdu::get_response(length)).ok()
+    let apdu = capdu::get_response(length);
+    println!("\nC-APDU: GET RESPONSE: {:02X?}", apdu);
+    connection::transmit(card, apdu).ok()
 }

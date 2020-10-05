@@ -5,8 +5,6 @@ use super::lib::{capdu, rapdu};
 use rapdu::{RAPDU, Status};
 
 pub fn transmit(card: &Card, apdu: impl capdu::APDU) -> Result<rapdu::RAPDU, &'static str> {
-    println!("Sending APDU: {:02X?}", apdu.to_array());
-
     let mut buffer = [0; MAX_BUFFER_SIZE];
     match card.transmit(&apdu.to_array(), &mut buffer) {
         Ok(response) => {
