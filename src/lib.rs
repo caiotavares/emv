@@ -1,310 +1,96 @@
-pub enum Error {
-    UnknownTLV
+mod tlv;
+mod capdu;
+mod rapdu;
+mod connection;
+
+use tlv::TLV;
+use rapdu::{RAPDU, Status};
+pub use connection::connect;
+
+pub const MASTERCARD_MAESTRO: [u8; 7] = [0xA0, 0x00, 0x00, 0x00, 0x04, 0x30, 0x60];
+pub const MASTERCARD_CREDIT: [u8; 7] = [0xA0, 0x00, 0x00, 0x00, 0x04, 0x10, 0x10];
+pub const CDOL: [u8; 66] = [0x00, 0x00, 0x00, 0x00, 0x13, 0x37, 0x00, 0x00, 0x00, 0x00, 0x13, 0x37, 0x09, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0x86, 0x15, 0x04, 0x28, 0x00, 0x30, 0x90, 0x1B, 0x6A, 0x23, 0x00, 0x00, 0x1E, 0xAB, 0xC1, 0x26, 0xF8, 0x54, 0x99, 0x76, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+
+pub fn select_application(card: &pcsc::Card, aid: [u8; 7]) {
+    let apdu = capdu::select(aid);
+    println!("\nC-APDU: SELECT: {:02X?}", apdu);
+    connection::transmit(card, apdu)
+        .map(|response| {
+            println!("R-APDU: {:02X?}", response);
+            if let RAPDU { status: Status::ResponseAvailable { length }, .. } = response {
+                read_response(card, length)
+                    .map(|rapdu| {
+                        println!("R-APDU: {:02X?}", tlv::TLV::decode(rapdu.data));
+                    });
+            }
+        });
 }
 
-trait Extendable {
-    fn extend(&self, value: u8) -> u16;
+pub fn read_pin_try_counter(card: &pcsc::Card) {
+    let apdu = capdu::get_data(0x9F, 0x17, 0x04);
+    println!("\nC-APDU: GET DATA: {:02X?}", apdu);
+    connection::transmit(card, apdu)
+        .map(|response| {
+            println!("R-APDU: {:02X?}", response);
+            println!("TLV: {:02X?}", TLV::decode(response.data));
+        });
 }
 
-impl Extendable for u8 {
-    fn extend(&self, value: u8) -> u16 {
-        let left = (*self as u16) << 8;
-        left | (value as u16)
-    }
+pub fn read_record(card: &pcsc::Card, record: u8, sfi: u8) {
+    let apdu = capdu::read_record(record, sfi, 0x00);
+    println!("\nC-APDU: READ RECORD {} / SFI {}: {:02X?}", record, sfi, apdu);
+    connection::transmit(card, apdu)
+        .map(|response| {
+            if let RAPDU { status: Status::WrongLength { length }, .. } = response {
+                connection::transmit(card, capdu::read_record(record, sfi, length))
+                    .map(|rapdu| {
+                        println!("R-APDU: {:02X?}", TLV::decode(rapdu.data));
+                    });
+            }
+        });
 }
 
-pub mod aid {
-    pub const MASTERCARD_MAESTRO: [u8; 7] = [0xA0, 0x00, 0x00, 0x00, 0x04, 0x30, 0x60];
-    pub const MASTERCARD_CREDIT: [u8; 7] = [0xA0, 0x00, 0x00, 0x00, 0x04, 0x10, 0x10];
+pub fn verify_pin(card: &pcsc::Card, pin: Vec<u8>) {
+    let apdu = capdu::verify(pin);
+    println!("\nC-APDU: VERIFY: {:02X?}", apdu);
+    connection::transmit(card, apdu)
+        .map(|rapdu| {
+            println!("R-APDU: {:02X?}", TLV::decode(rapdu.data));
+        });
 }
 
-pub mod rapdu {
-    #[derive(Debug)]
-    pub struct RAPDU {
-        pub status: Status,
-        pub data: Vec<u8>,
-    }
-
-    impl RAPDU {
-        pub fn new(status: Status, data: &[u8]) -> RAPDU {
-            RAPDU { status, data: Vec::from(data) }
-        }
-    }
-
-    #[derive(Debug)]
-    pub enum Status {
-        ResponseAvailable { length: u8 },
-        WrongLength { length: u8 },
-        Ok,
-        Unknown,
-    }
-
-    impl Status {
-        pub fn new(sw1: u8, sw2: u8) -> Status {
-            match sw1 {
-                0x61 => Status::ResponseAvailable { length: sw2 },
-                0x6C => Status::WrongLength { length: sw2 },
-                _ => Status::check_sw2(sw1, sw2)
+pub fn get_processing_options(card: &pcsc::Card) {
+    let apdu = capdu::get_processing_options();
+    println!("\nC-APDU: GET PROCESSING OPTIONS: {:02X?}", apdu);
+    connection::transmit(card, apdu)
+        .map(|response| {
+            println!("R-APDU: {:02X?}", response);
+            if let RAPDU { status: Status::ResponseAvailable { length }, .. } = response {
+                read_response(card, length)
+                    .map(|rapdu| {
+                        println!("R-APDU: {:02X?}", TLV::decode(rapdu.data));
+                    });
             }
-        }
-
-        fn check_sw2(sw1: u8, sw2: u8) -> Status {
-            match [sw1, sw2] {
-                [0x90, 0x00] => Status::Ok,
-                _ => Status::Unknown
-            }
-        }
-    }
+        });
 }
 
-pub mod capdu {
-    pub trait APDU {
-        fn to_array(&self) -> Vec<u8>;
-    }
-
-    #[derive(Debug)]
-    pub struct APDU1 { cla: u8, ins: u8, p1: u8, p2: u8 }
-
-    #[derive(Debug)]
-    pub struct APDU2 { cla: u8, ins: u8, p1: u8, p2: u8, le: u8 }
-
-    #[derive(Debug)]
-    pub struct APDU3 { cla: u8, ins: u8, p1: u8, p2: u8, lc: u8, data: Vec<u8> }
-
-    #[derive(Debug)]
-    pub struct APDU4 { cla: u8, ins: u8, p1: u8, p2: u8, lc: u8, data: Vec<u8>, le: u8 }
-
-    impl APDU1 {
-        pub fn new(cla: u8, ins: u8, p1: u8, p2: u8) -> APDU1 {
-            APDU1 { cla, ins, p1, p2 }
-        }
-    }
-
-    impl APDU2 {
-        pub fn new(cla: u8, ins: u8, p1: u8, p2: u8, le: u8) -> APDU2 {
-            APDU2 { cla, ins, p1, p2, le }
-        }
-    }
-
-    impl APDU3 {
-        pub fn new(cla: u8, ins: u8, p1: u8, p2: u8, lc: u8, data: Vec<u8>) -> APDU3 {
-            APDU3 { cla, ins, p1, p2, lc, data }
-        }
-    }
-
-    impl APDU4 {
-        pub fn new(cla: u8, ins: u8, p1: u8, p2: u8, lc: u8, data: Vec<u8>, le: u8) -> APDU4 {
-            APDU4 { cla, ins, p1, p2, lc, data, le }
-        }
-    }
-
-    impl APDU for APDU1 {
-        fn to_array(&self) -> Vec<u8> {
-            [self.cla, self.ins, self.p1, self.p2].to_vec()
-        }
-    }
-
-    impl APDU for APDU2 {
-        fn to_array(&self) -> Vec<u8> {
-            [self.cla, self.ins, self.p1, self.p2, self.le].to_vec()
-        }
-    }
-
-    impl APDU for APDU3 {
-        fn to_array(&self) -> Vec<u8> {
-            let mut vec = [self.cla, self.ins, self.p1, self.p2, self.lc].to_vec();
-            vec.extend(&self.data);
-            vec
-        }
-    }
-
-    impl APDU for APDU4 {
-        fn to_array(&self) -> Vec<u8> {
-            let mut vec = [self.cla, self.ins, self.p1, self.p2, self.lc].to_vec();
-            vec.extend(&self.data);
-            vec.push(self.le);
-            vec
-        }
-    }
-
-    pub fn select(aid: [u8; 7]) -> APDU3 {
-        APDU3::new(0x00, 0xA4, 0x04, 0x00, 0x07, aid.to_vec())
-    }
-
-    pub fn get_response(length: u8) -> APDU2 {
-        APDU2::new(0xA0, 0xC0, 0x00, 0x00, length)
-    }
-
-    pub fn get_data(id1: u8, id2: u8, length: u8) -> APDU2 {
-        APDU2::new(0x80, 0xCA, id1, id2, length)
-    }
-
-    pub fn get_processing_options() -> APDU3 {
-        APDU3::new(0x80, 0xA8, 0x00, 0x00, 0x02, [0x83, 0x00].to_vec())
-    }
-
-    pub fn read_record(record_id: u8, sfi: u8, length: u8) -> APDU2 {
-        APDU2::new(0x00, 0xB2, record_id, sfi, length)
-    }
-
-    pub fn generate_ac(cdol: Vec<u8>) -> APDU3 {
-        let length = cdol.len() as u8;
-        APDU3::new(0x80, 0xAE, 0x80, 0x00, length, cdol)
-    }
-
-    pub fn unblock_pin(mac: Vec<u8>) -> APDU3 {
-        let length = mac.len() as u8;
-        APDU3::new(0x84, 0x24, 0x00, 0x00, length, mac)
-    }
-
-    pub fn verify(pin: Vec<u8>) -> APDU3 {
-        let length = pin.len() as u8;
-        APDU3::new(0x00, 0x20, 0x00, 0x80, length, pin)
-    }
+pub fn generate_ac(card: &pcsc::Card, cdol: Vec<u8>) {
+    let apdu = capdu::generate_ac(cdol);
+    println!("\nC-APDU: GENERATE AC: {:02X?}", apdu);
+    connection::transmit(card, apdu)
+        .map(|response| {
+            println!("R-APDU: {:02X?}", response);
+            if let RAPDU { status: Status::ResponseAvailable { length }, .. } = response {
+                read_response(card, length)
+                    .map(|rapdu| {
+                        println!("R-APDU: {:02X?}", TLV::decode(rapdu.data));
+                    });
+            }
+        });
 }
 
-pub mod tlv {
-    use super::{Error, Extendable};
-
-    #[derive(Debug)]
-    pub enum Tag {
-        ApplicationCryptogram,
-        ApplicationCurrencyCode,
-        ApplicationEffectiveDate,
-        ApplicationExpirationDate,
-        ApplicationFileLocator,
-        ApplicationInterchangeProfile,
-        ApplicationLabel,
-        ApplicationPreferredName,
-        ApplicationPrimaryAccountNumber,
-        ApplicationPrimaryAccountNumberSequenceNumber,
-        ApplicationPriorityIndicator,
-        ApplicationTransactionCounter,
-        ApplicationUsageControl,
-        CardholderVerificationMethodList,
-        CardRiskManagementDataObjectList1,
-        CardRiskManagementDataObjectList2,
-        CryptogramInformationData,
-        DedicatedFileName,
-        EMVProprietaryTemplate,
-        FileControlInformationIssuerDiscretionaryData,
-        FileControlInformationProprietaryTemplate,
-        FileControlInformationTemplate,
-        IssuerActionCodeDefault,
-        IssuerActionCodeDenial,
-        IssuerActionCodeOnline,
-        IssuerApplicationData,
-        IssuerCodeTableIndex,
-        IssuerCountryCode,
-        LanguagePreference,
-        LogEntry,
-        PinTryCounter,
-        ResponseMessageTemplateFormat2,
-        StaticDataAuthenticationTagList,
-        UnknownTag,
-    }
-
-    impl Tag {
-        pub fn from_u8(value: u8) -> Option<Tag> {
-            match value {
-                0x50 => Some(Tag::ApplicationLabel),
-                0x5A => Some(Tag::ApplicationPrimaryAccountNumber),
-                0x6F => Some(Tag::FileControlInformationTemplate),
-                0x77 => Some(Tag::ResponseMessageTemplateFormat2),
-                0x82 => Some(Tag::ApplicationInterchangeProfile),
-                0x84 => Some(Tag::DedicatedFileName),
-                0x87 => Some(Tag::ApplicationPriorityIndicator),
-                0x8C => Some(Tag::CardRiskManagementDataObjectList1),
-                0x8D => Some(Tag::CardRiskManagementDataObjectList2),
-                0x8E => Some(Tag::CardholderVerificationMethodList),
-                0x94 => Some(Tag::ApplicationFileLocator),
-                0xA5 => Some(Tag::FileControlInformationProprietaryTemplate),
-                _ => None
-            }
-        }
-
-        pub fn from_u16(value: u16) -> Option<Tag> {
-            match value {
-                0x5F24 => Some(Tag::ApplicationExpirationDate),
-                0x5F25 => Some(Tag::ApplicationEffectiveDate),
-                0x5F28 => Some(Tag::IssuerCountryCode),
-                0x5F2D => Some(Tag::LanguagePreference),
-                0x5F34 => Some(Tag::ApplicationPrimaryAccountNumberSequenceNumber),
-                0x7081 => Some(Tag::EMVProprietaryTemplate),
-                0x9F07 => Some(Tag::ApplicationUsageControl),
-                0x9F0D => Some(Tag::IssuerActionCodeDefault),
-                0x9F0E => Some(Tag::IssuerActionCodeDenial),
-                0x9F0F => Some(Tag::IssuerActionCodeOnline),
-                0x9F10 => Some(Tag::IssuerApplicationData),
-                0x9F11 => Some(Tag::IssuerCodeTableIndex),
-                0x9F12 => Some(Tag::ApplicationPreferredName),
-                0x9F17 => Some(Tag::PinTryCounter),
-                0x9F26 => Some(Tag::ApplicationCryptogram),
-                0x9F27 => Some(Tag::CryptogramInformationData),
-                0x9F36 => Some(Tag::ApplicationTransactionCounter),
-                0x9F42 => Some(Tag::ApplicationCurrencyCode),
-                0x9F4A => Some(Tag::StaticDataAuthenticationTagList),
-                0x9F4D => Some(Tag::LogEntry),
-                0x9F5D => Some(Tag::UnknownTag),
-                0x9F6E => Some(Tag::UnknownTag),
-                0xBF0C => Some(Tag::FileControlInformationIssuerDiscretionaryData),
-                _ => None
-            }
-        }
-
-        pub fn is_template(&self) -> bool {
-            match self {
-                Tag::EMVProprietaryTemplate => true,
-                Tag::ResponseMessageTemplateFormat2 => true,
-                Tag::FileControlInformationTemplate => true,
-                Tag::FileControlInformationProprietaryTemplate => true,
-                Tag::FileControlInformationIssuerDiscretionaryData => true,
-                _ => false
-            }
-        }
-    }
-
-    #[derive(Debug)]
-    pub struct TLV {
-        tag: Tag,
-        length: u8,
-        value: Vec<u8>,
-    }
-
-    impl TLV {
-        pub fn parse(data: Vec<u8>) -> Result<(TLV, Vec<u8>), &'static str> {
-            if data.len() < 2 {
-                return Err("Not enough data to parse TLV!");
-            }
-
-            let mut iter = data.iter();
-            let first_byte = iter.next().unwrap().clone();
-
-            Tag::from_u8(first_byte)
-                .or_else(|| { Tag::from_u16(first_byte.extend(iter.next().unwrap().clone())) })
-                .map_or(
-                    Err("Unknown TLV tag!"),
-                    |tag| {
-                        let length = iter.next().unwrap().clone();
-                        let value: Vec<u8> = iter.as_slice()[0..(usize::from(length))].to_vec();
-                        Ok((TLV { tag, length, value }, iter.as_slice()[(usize::from(length))..].to_vec()))
-                    })
-        }
-
-        pub fn decode(data: Vec<u8>) -> Vec<TLV> {
-            let mut result: Vec<TLV> = Vec::new();
-            let mut data = data;
-
-            loop {
-                let (tlv, remainder) = TLV::parse(data).unwrap();
-                if !tlv.tag.is_template() {
-                    result.push(tlv);
-                    if remainder.len() == 0 {
-                        break;
-                    } else { data = remainder; }
-                } else { data = tlv.value; }
-            }
-            result
-        }
-    }
+fn read_response(card: &pcsc::Card, length: u8) -> Option<RAPDU> {
+    let apdu = capdu::get_response(length);
+    println!("\nC-APDU: GET RESPONSE: {:02X?}", apdu);
+    connection::transmit(card, apdu).ok()
 }
