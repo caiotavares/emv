@@ -1,3 +1,5 @@
+use crate::utils::Extendable;
+
 #[derive(Debug)]
 pub struct RAPDU {
     pub status: Status,
@@ -14,6 +16,7 @@ impl RAPDU {
 pub enum Status {
     ResponseAvailable { length: u8 },
     WrongLength { length: u8 },
+    ReferencedDataNotFound,
     Ok,
     Unknown,
 }
@@ -23,14 +26,18 @@ impl Status {
         match sw1 {
             0x61 => Status::ResponseAvailable { length: sw2 },
             0x6C => Status::WrongLength { length: sw2 },
-            _ => Status::check_sw2(sw1, sw2)
+            _ => Status::check_sw2(sw1.extend(sw2))
         }
     }
 
-    fn check_sw2(sw1: u8, sw2: u8) -> Status {
-        match [sw1, sw2] {
-            [0x90, 0x00] => Status::Ok,
-            _ => Status::Unknown
+    fn check_sw2(sw: u16) -> Status {
+        match sw {
+            0x9000 => Status::Ok,
+            0x6A88 => Status::ReferencedDataNotFound,
+            _ => {
+                println!("Unknown Response Status: {:02X?}", sw);
+                Status::Unknown
+            }
         }
     }
 }

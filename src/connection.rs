@@ -6,6 +6,7 @@ use pcsc::*;
 
 pub fn transmit(card: &Card, apdu: impl APDU) -> Result<RAPDU, &'static str> {
     let mut buffer = [0; MAX_BUFFER_SIZE];
+    println!("\nC-APDU: {}: {:02X?}", apdu.name(), apdu.to_array());
     match card.transmit(&apdu.to_array(), &mut buffer) {
         Ok(response) => {
             let rapdu;
@@ -18,6 +19,7 @@ pub fn transmit(card: &Card, apdu: impl APDU) -> Result<RAPDU, &'static str> {
             else {
                 rapdu = RAPDU::new(Status::new(response[length - 2], response[length - 1]), &response[0..length - 2]);
             }
+            println!("R-APDU: {:02X?}", rapdu);
             Ok(rapdu)
         }
         Err(err) => {

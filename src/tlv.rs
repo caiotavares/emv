@@ -1,13 +1,4 @@
-trait Extendable {
-    fn extend(&self, value: u8) -> u16;
-}
-
-impl Extendable for u8 {
-    fn extend(&self, value: u8) -> u16 {
-        let left = (*self as u16) << 8;
-        left | (value as u16)
-    }
-}
+use crate::utils::Extendable;
 
 #[derive(Debug)]
 pub enum Tag {
