@@ -1,12 +1,13 @@
 extern crate pcsc;
 
-use super::capdu::APDU;
-use super::rapdu::{RAPDU, Status};
 use pcsc::*;
 
-pub fn transmit(card: &Card, apdu: impl APDU) -> Result<RAPDU, &'static str> {
+use super::capdu::APDU;
+use super::rapdu::{RAPDU, Status};
+
+pub fn transmit(card: &Card, apdu: &APDU) -> Result<RAPDU, &'static str> {
     let mut buffer = [0; MAX_BUFFER_SIZE];
-    println!("\nC-APDU: {}: {:02X?}", apdu.name(), apdu.to_array());
+    println!("\nC-APDU: {}: {:02X?}", apdu.name, apdu.to_array());
     match card.transmit(&apdu.to_array(), &mut buffer) {
         Ok(response) => {
             let rapdu;

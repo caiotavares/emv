@@ -17,6 +17,8 @@ pub enum Status {
     ResponseAvailable { length: u8 },
     WrongLength { length: u8 },
     ReferencedDataNotFound,
+    ConditionsOfUseNotSatisfied,
+    SecurityConditionNotSatisfied,
     Ok,
     Unknown,
 }
@@ -34,6 +36,8 @@ impl Status {
         match sw {
             0x9000 => Status::Ok,
             0x6A88 => Status::ReferencedDataNotFound,
+            0x6982 => Status::SecurityConditionNotSatisfied,
+            0x6985 => Status::ConditionsOfUseNotSatisfied,
             _ => {
                 println!("Unknown Response Status: {:02X?}", sw);
                 Status::Unknown

@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 pcsc = { version = "2.4.0" }
+hex = "0.4.2"
