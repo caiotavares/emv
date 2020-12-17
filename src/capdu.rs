@@ -89,9 +89,15 @@ pub fn read_record(record_id: u8, sfi: u8) -> APDU {
     APDU::new1("READ RECORD", 0x00, 0xB2, record_id, sfi)
 }
 
+pub fn external_authenticate(issuer_authentication_data: Vec<u8>) -> APDU {
+    let length = issuer_authentication_data.len() as u8;
+    APDU::new3("EXTERNAL AUTHENTICATE", 0x00, 0x82, 0x00, 0x00, length, issuer_authentication_data)
+}
+
 pub fn generate_ac(cryptogram_type: CryptogramType, cdol_data: Vec<u8>) -> APDU {
     let length = cdol_data.len() as u8;
-    APDU::new3("GENERATE AC", 0x80, 0xAE, cryptogram_type.to_reference_control(), 0x00, length, cdol_data)
+    let reference_control = cryptogram_type.to_reference_control();
+    APDU::new3("GENERATE AC", 0x80, 0xAE, reference_control, 0x00, length, cdol_data)
 }
 
 pub fn reset_pin_try_counter(mac: Vec<u8>) -> APDU {

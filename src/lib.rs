@@ -75,6 +75,11 @@ pub fn generate_first_ac(card: &pcsc::Card, cdol1: Vec<u8>) {
     send(card, apdu)
 }
 
+pub fn external_authenticate(card: &pcsc::Card, issuer_authentication_data: Vec<u8>) {
+    let apdu = capdu::external_authenticate(issuer_authentication_data);
+    send(card, apdu)
+}
+
 /// Generate the Second AC approving (TC) or declining (AAC) the transaction
 pub fn generate_second_ac(approve: bool, card: &pcsc::Card, cdol2: Vec<u8>) {
     let cryptogram_type = if approve { CryptogramType::TC } else { CryptogramType::AAC };

@@ -19,6 +19,7 @@ pub enum Status {
     ReferencedDataNotFound,
     ConditionsOfUseNotSatisfied,
     SecurityConditionNotSatisfied,
+    InstructionCodeNotSupported,
     Ok,
     Unknown,
 }
@@ -38,6 +39,7 @@ impl Status {
             0x6A88 => Status::ReferencedDataNotFound,
             0x6982 => Status::SecurityConditionNotSatisfied,
             0x6985 => Status::ConditionsOfUseNotSatisfied,
+            0x6D00 => Status::InstructionCodeNotSupported,
             _ => {
                 println!("Unknown Response Status: {:02X?}", sw);
                 Status::Unknown
