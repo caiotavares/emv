@@ -63,8 +63,9 @@ impl APDU {
     }
 }
 
-pub fn select(aid: [u8; 7]) -> APDU {
-    APDU::new3("SELECT", 0x00, 0xA4, 0x04, 0x00, 0x07, aid.to_vec())
+pub fn select(aid: Vec<u8>) -> APDU {
+    let length = aid.len() as u8;
+    APDU::new3("SELECT", 0x00, 0xA4, 0x04, 0x00, length, aid)
 }
 
 pub fn get_response(length: u8) -> APDU {
