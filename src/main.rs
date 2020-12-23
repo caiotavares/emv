@@ -9,7 +9,7 @@ fn main() {
     let card = emv::connect();
     match card {
         Some(card) => {
-            emv::select_application(&card, emv::MASTERCARD_CREDIT);
+            emv::select_application(&card, emv::MASTERCARD_CREDIT.to_vec());
             emv::get_processing_options(&card);
             emv::read_record(&card, 0x01, 0x1C);
             emv::generate_first_ac(&card, emv::CDOL1.to_vec());
