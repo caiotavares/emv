@@ -115,3 +115,11 @@ pub fn verify(pin: Vec<u8>) -> APDU {
     let length = pin.len() as u8;
     APDU::new3("VERIFY", 0x00, 0x20, 0x00, 0x80, length, pin)
 }
+
+pub fn application_block(mac: Vec<u8>) -> APDU {
+    APDU::new3("APPLICATION BLOCK", 0x84, 0x1E, 0x00, 0x00, 0x08, mac)
+}
+
+pub fn application_unblock(mac: Vec<u8>) -> APDU {
+    APDU::new3("APPLICATION UNBLOCK", 0x84, 0x18, 0x00, 0x00, 0x08, mac)
+}

@@ -13,7 +13,7 @@ mod utils;
 
 pub const MASTERCARD_MAESTRO: [u8; 7] = [0xA0, 0x00, 0x00, 0x00, 0x04, 0x30, 0x60];
 pub const MASTERCARD_CREDIT: [u8; 7] = [0xA0, 0x00, 0x00, 0x00, 0x04, 0x10, 0x10];
-pub const CDOL1: [u8; 66] = [0x00, 0x00, 0x00, 0x00, 0x13, 0x37, 0x00, 0x00, 0x00, 0x00, 0x13, 0x37, 0x09, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0x86, 0x15, 0x04, 0x28, 0x00, 0x30, 0x90, 0x1B, 0x6A, 0x23, 0x00, 0x00, 0x1E, 0xAB, 0xC1, 0x26, 0xF8, 0x54, 0x99, 0x76, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+pub const CDOL1: [u8; 66] = [0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x09, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0x86, 0x15, 0x04, 0x28, 0x00, 0x30, 0x90, 0x1B, 0x6A, 0x23, 0x00, 0x00, 0x1E, 0xAB, 0xC1, 0x26, 0xF8, 0x54, 0x99, 0x76, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
 
 fn send(card: &pcsc::Card, apdu: APDU) {
     connection::transmit(card, &apdu)
@@ -22,7 +22,7 @@ fn send(card: &pcsc::Card, apdu: APDU) {
                 RAPDU { status: Status::ResponseAvailable { length }, .. } => {
                     read_response(card, length);
                 }
-                RAPDU { status: Status::WrongLength { length }, .. } => {
+                RAPDU { status: Status::WrongLengthLe { length }, .. } => {
                     connection::transmit(card, &apdu.with_length(length));
                 }
                 _ => {
@@ -92,18 +92,37 @@ pub fn unblock_pin(card: &pcsc::Card, mac: Vec<u8>) {
     send(card, apdu)
 }
 
-pub fn update_application(card: &pcsc::Card, aid: [u8; 7]) {
+pub fn application_block(card: &pcsc::Card, mac: Vec<u8>) {
+    let apdu = capdu::application_block(mac);
+    send(card, apdu)
+}
+
+pub fn application_unblock(card: &pcsc::Card, mac: Vec<u8>) {
+    let apdu = capdu::application_unblock(mac);
+    send(card, apdu)
+}
+
+pub fn update_linked_application_v0(card: &pcsc::Card, mut aid: Vec<u8>, mut target_data_id: Vec<u8>, mut value: Vec<u8>, mut mac: Vec<u8>) {
+    let version_number: u8 = 0x00;
+    let target_application: u8 = 0xFF;
+    let aid_length: u8 = aid.len() as u8;
+    let mut data = [version_number, target_application, aid_length].to_vec();
+    data.append(&mut aid);
+    data.append(&mut target_data_id);
+    data.append(&mut value);
+    data.append(&mut mac);
+    let apdu = capdu::put_data(true, 0xDF07, data);
+    send(card, apdu)
+}
+
+pub fn update_linked_application_v1(card: &pcsc::Card, mut aid: Vec<u8>, mut id_l_v: Vec<u8>, mut mac: Vec<u8>) {
     let version_number: u8 = 0x01;
     let target_application: u8 = 0xFF;
-    let aid_length: u8 = 0x07;
-    let mut aid = aid.to_vec();
-    //                        |----ID----|--L--|--V--|--M--|
-    let mut id_l_v: Vec<u8> = [0xDF, 0x30, 0x01, 0x01, 0x01].to_vec();
-
+    let aid_length: u8 = aid.len() as u8;
     let mut data = [version_number, target_application, aid_length].to_vec();
     data.append(&mut aid);
     data.append(&mut id_l_v);
-
+    data.append(&mut mac);
     let apdu = capdu::put_data(true, 0xDF07, data);
     send(card, apdu)
 }
