@@ -1,12 +1,26 @@
-extern crate pcsc;
 extern crate hex;
+extern crate pcsc;
 
-use std::process;
 use std::io::{self, Read, Write};
+use std::process;
+
 use hex::FromHex;
+use structopt::StructOpt;
+
+use cli::Emv;
+use cli::Mode;
+
+mod cli;
 
 fn main() {
     let card = emv::connect();
+    emv::announcement();
+    let args: Emv = Emv::from_args();
+    match args.mode {
+        Mode::Shell => { println!("Shell mode") }
+        Mode::Run { input } => { println!("Run Mode") }
+    }
+
     match card {
         Some(card) => {
             emv::select_application(&card, emv::MASTERCARD_MAESTRO.to_vec());

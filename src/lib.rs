@@ -1,15 +1,15 @@
+use capdu::APDU;
+use capdu::CryptogramType;
 pub use connection::connect;
 use rapdu::{RAPDU, Status};
 use tlv::TLV;
-use capdu::CryptogramType;
-
-use crate::capdu::APDU;
 
 mod tlv;
 mod capdu;
 mod rapdu;
 mod connection;
 mod utils;
+mod banner;
 
 pub const MASTERCARD_MAESTRO: [u8; 7] = [0xA0, 0x00, 0x00, 0x00, 0x04, 0x30, 0x60];
 pub const MASTERCARD_CREDIT: [u8; 7] = [0xA0, 0x00, 0x00, 0x00, 0x04, 0x10, 0x10];
@@ -134,4 +134,8 @@ pub fn offline_change_pin(card: &pcsc::Card, new_pin: Vec<u8>) {
 fn read_response(card: &pcsc::Card, length: u8) {
     let apdu = capdu::get_response(length);
     send(card, apdu)
+}
+
+pub fn announcement() {
+    println!("{}", banner::BANNER);
 }
