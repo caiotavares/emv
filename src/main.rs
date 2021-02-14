@@ -12,7 +12,7 @@ fn main() {
             emv::select_application(&card, emv::MASTERCARD_MAESTRO.to_vec());
             emv::get_processing_options(&card);
             emv::read_record(&card, 0x01, 0x1C);
-            emv::generate_first_ac(&card, emv::CDOL1.to_vec());
+            emv::generate_first_ac(&card, read_input("Input the CDOL1 value: "));
             emv::generate_second_ac(true, &card, read_input("Input the CDOL2 value: "));
             emv::update_linked_application_v0(&card, emv::MASTERCARD_CREDIT.to_vec(), vec![0x00, 0xA5], read_input("Input the new value: "), read_input("Input the MAC: "));
         }

@@ -38,14 +38,14 @@ impl Status {
 
     fn check_sw2(sw: u16) -> Status {
         match sw {
-            0x9000 => Status::Ok,
-            0x6A82 => Status::FileNotFound,
             0x6283 => Status::SelectedFileInvalidated,
             0x6700 => Status::WrongLength,
             0x6982 => Status::SecurityConditionNotSatisfied,
             0x6985 => Status::ConditionsOfUseNotSatisfied,
+            0x6A82 => Status::FileNotFound,
             0x6A88 => Status::ReferencedDataNotFound,
             0x6D00 => Status::InstructionCodeNotSupported,
+            0x9000 => Status::Ok,
             _ => {
                 println!("Unknown Response Status: {:02X?}", sw);
                 Status::Unknown
