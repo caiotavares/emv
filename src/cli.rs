@@ -1,5 +1,6 @@
 use structopt::StructOpt;
 use std::path::PathBuf;
+use hex::FromHex;
 
 #[derive(StructOpt)]
 pub struct Emv {
@@ -16,9 +17,10 @@ pub enum Mode {
     },
 }
 
-enum Commands {
+#[derive(Debug)]
+pub enum Command {
     Select {
-        application: String
+        application: Vec<u8>
     },
     GetProcessingOptions,
     ReadRecord {
@@ -27,7 +29,7 @@ enum Commands {
     },
     GenerateAC {
         cryptogram_type: u8,
-        cdol: String,
+        cdol: Vec<u8>,
     },
     PutData {
         tag: String,
@@ -36,4 +38,23 @@ enum Commands {
     GetData {
         tag: String
     },
+}
+
+impl Command {
+    pub fn from_str(str: String) -> Command {
+        let parts: Vec<&str> = str.split(' ').collect();
+        let name = parts[0];
+
+        match name {
+            "select" => Command::Select {
+                application: Vec::from_hex(parts[1]).expect("Error reading Application")
+            },
+            "get_processing_options" => Command::GetProcessingOptions,
+            "generate_ac" => Command::GenerateAC {
+                cryptogram_type: hex::decode(parts[1]).expect("Error reading Cryptogram Type").first().cloned().expect(""),
+                cdol: Vec::from_hex(parts[2]).expect("Error reading CDOL value"),
+            },
+            _ => panic!("Unknown command when parsing file")
+        }
+    }
 }

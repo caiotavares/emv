@@ -68,21 +68,13 @@ pub fn get_processing_options(card: &pcsc::Card) {
     send(card, apdu)
 }
 
-/// Generate the First AC requesting an ARQC from the ICC
-pub fn generate_first_ac(card: &pcsc::Card, cdol1: Vec<u8>) {
-    let apdu = capdu::generate_ac(CryptogramType::ARQC, cdol1);
+pub fn generate_ac(card: &pcsc::Card, cryptogram_type: CryptogramType, cdol: Vec<u8>) {
+    let apdu = capdu::generate_ac(cryptogram_type, cdol);
     send(card, apdu)
 }
 
 pub fn external_authenticate(card: &pcsc::Card, issuer_authentication_data: Vec<u8>) {
     let apdu = capdu::external_authenticate(issuer_authentication_data);
-    send(card, apdu)
-}
-
-/// Generate the Second AC approving (TC) or declining (AAC) the transaction
-pub fn generate_second_ac(approve: bool, card: &pcsc::Card, cdol2: Vec<u8>) {
-    let cryptogram_type = if approve { CryptogramType::TC } else { CryptogramType::AAC };
-    let apdu = capdu::generate_ac(cryptogram_type, cdol2);
     send(card, apdu)
 }
 
