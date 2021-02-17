@@ -1,5 +1,7 @@
-use crate::utils::Splitable;
 use std::borrow::Borrow;
+
+use crate::CryptogramType;
+use crate::utils::Splitable;
 
 #[derive(Debug)]
 pub struct APDU {
@@ -11,23 +13,6 @@ pub struct APDU {
     lc: Option<u8>,
     data: Option<Vec<u8>>,
     le: Option<u8>,
-}
-
-#[derive(Debug)]
-pub enum CryptogramType {
-    AAC,
-    ARQC,
-    TC,
-}
-
-impl CryptogramType {
-    pub fn to_reference_control(&self) -> u8 {
-        match self {
-            CryptogramType::AAC => 0x00,
-            CryptogramType::ARQC => 0x80,
-            CryptogramType::TC => 0x40
-        }
-    }
 }
 
 impl APDU {

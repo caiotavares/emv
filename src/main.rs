@@ -9,9 +9,7 @@ use std::process;
 use hex::FromHex;
 use structopt::StructOpt;
 
-use cli::{Command, Emv, Mode};
-
-mod cli;
+use emv::{Command, Mode, Emv};
 
 fn main() {
     emv::announcement();
@@ -43,19 +41,12 @@ fn run(input: PathBuf, card: pcsc::Card) {
 
 fn execute_command(command: Command, card: &pcsc::Card) {
     match command {
-        Command::Select { application} => emv::select_application(card, application),
+        Command::Select { application } => emv::select_application(card, application),
         Command::GetProcessingOptions => emv::get_processing_options(card),
-        _ => panic!("OPS")
-        // Command::GenerateAC { cryptogram_type, cdol} => emv::generate_ac(card, cryptogram_type, cdol)
-        //
-        // Some(card) => {
-        //     emv::select_application(&card, emv::MASTERCARD_MAESTRO.to_vec());
-        //     emv::get_processing_options(&card);
-        //     emv::read_record(&card, 0x01, 0x1C);
-        //     emv::generate_first_ac(&card, read_input("Input the CDOL1 value: "));
-        //     emv::generate_second_ac(true, &card, read_input("Input the CDOL2 value: "));
-        //     emv::update_linked_application_v0(&card, emv::MASTERCARD_CREDIT.to_vec(), vec![0x00, 0xA5], read_input("Input the new value: "), read_input("Input the MAC: "));
-        // }
+        Command::GenerateAC { cryptogram_type, cdol } => emv::generate_ac(card, cryptogram_type, cdol),
+        Command::PutData { tag, value } => emv::put_data(card, tag, value),
+        Command::GetData { tag } => emv::get_data(card, tag),
+        _ => panic!("No matching command found")
     }
 }
 

@@ -1,6 +1,7 @@
 use structopt::StructOpt;
 use std::path::PathBuf;
 use hex::FromHex;
+use crate::CryptogramType;
 
 #[derive(StructOpt)]
 pub struct Emv {
@@ -28,15 +29,15 @@ pub enum Command {
         sfi: u8,
     },
     GenerateAC {
-        cryptogram_type: u8,
+        cryptogram_type: CryptogramType,
         cdol: Vec<u8>,
     },
     PutData {
-        tag: String,
-        value: String,
+        tag: u16,
+        value: Vec<u8>,
     },
     GetData {
-        tag: String
+        tag: u16
     },
 }
 
@@ -51,9 +52,10 @@ impl Command {
             },
             "get_processing_options" => Command::GetProcessingOptions,
             "generate_ac" => Command::GenerateAC {
-                cryptogram_type: hex::decode(parts[1]).expect("Error reading Cryptogram Type").first().cloned().expect(""),
+                cryptogram_type: CryptogramType::from_str(parts[1]),
                 cdol: Vec::from_hex(parts[2]).expect("Error reading CDOL value"),
             },
+            // "put_data" => Command::PutData { tag: Vec::from_hex(parts[1]).expect("banana") }
             _ => panic!("Unknown command when parsing file")
         }
     }
