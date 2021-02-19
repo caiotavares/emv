@@ -9,7 +9,8 @@ use std::process;
 use hex::FromHex;
 use structopt::StructOpt;
 
-use emv::{Command, Mode, Emv, CryptogramType};
+use emv::cli::{Command, Emv, Mode};
+use emv::{cli, CryptogramType};
 
 fn main() {
     emv::announcement();
@@ -23,23 +24,27 @@ fn main() {
             }
         }
         None => {
-            println!("No card detected!");
+            eprintln!("No card detected!");
             process::exit(1);
         }
     }
 }
 
 fn shell(card: pcsc::Card) {
-    // Read line by line and dispatch to execute_command
-    println!("Shell mode")
+    loop {
+        cli::read_command()
+            .map(|cmd| execute_command(cmd, &card));
+    }
 }
 
 fn run(input: PathBuf, card: pcsc::Card) {
-    let file = File::open(input).expect("deu ruim");
+    let file = File::open(input).expect("File not found!");
     for line in io::BufReader::new(file).lines() {
         if let Ok(cmd) = line {
-            let command = Command::from_str(cmd);
-            execute_command(command, &card);
+            match Command::from_str(cmd) {
+                Ok(command) => execute_command(command, &card),
+                Err(error) => eprintln!("Error interpreting command. Error {:?}", error),
+            }
         }
     }
 }
@@ -50,21 +55,14 @@ fn execute_command(command: Command, card: &pcsc::Card) {
         Command::GetProcessingOptions => emv::get_processing_options(card),
         Command::GenerateAC { cryptogram_type, cdol } => {
             match cryptogram_type {
-                CryptogramType::TC => emv::generate_ac(card, cryptogram_type, read_input("Input the CDOL2 value: ")),
+                CryptogramType::TC => emv::generate_ac(card, cryptogram_type, cli::read_hex_input("Input the CDOL2 value: ")),
                 _ => emv::generate_ac(card, cryptogram_type, cdol.unwrap()),
             }
         }
-        Command::PutData { tag, value } => emv::put_data_secure(card, tag, value, read_input("Input the MAC: ")),
+        Command::PutData { tag, value } => emv::put_data_secure(card, tag, value, cli::read_hex_input("Input the MAC: ")),
         Command::GetData { tag } => emv::get_data(card, tag),
         Command::ReadRecord { record, sfi } => emv::read_record(&card, record, sfi),
     }
 }
 
 
-fn read_input(question: &'static str) -> Vec<u8> {
-    let mut buffer = String::new();
-    print!("{}", question);
-    io::stdout().flush();
-    io::stdin().read_line(&mut buffer);
-    hex::decode(buffer.trim()).expect("Not a hex string")
-}

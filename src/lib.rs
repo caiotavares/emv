@@ -1,5 +1,4 @@
 use capdu::APDU;
-pub use cli::{Command, Emv, Mode};
 pub use connection::connect;
 use rapdu::{RAPDU, Status};
 use tlv::TLV;
@@ -10,7 +9,7 @@ mod rapdu;
 mod connection;
 mod utils;
 mod banner;
-mod cli;
+pub mod cli;
 
 #[derive(Debug)]
 pub enum CryptogramType {

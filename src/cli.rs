@@ -1,10 +1,12 @@
+use std::io;
+use std::io::Write;
 use std::path::PathBuf;
 
 use hex::FromHex;
 use structopt::StructOpt;
 
 use crate::CryptogramType;
-use crate::utils::*;
+use crate::utils::Hexadecimal;
 
 #[derive(StructOpt)]
 pub struct Emv {
@@ -45,37 +47,60 @@ pub enum Command {
 }
 
 impl Command {
-    pub fn from_str(str: String) -> Command {
-        let parts: Vec<&str> = str.split(' ').collect();
-        let name = parts[0];
+    pub fn from_str(str: String) -> Result<Command, &'static str> {
+        let parts: Vec<&str> = str.trim().split(' ').collect();
+        let name = parts[0].to_lowercase();
 
-        match name {
-            "select" => Command::Select {
-                application: str_to_vec_u8(parts[1])
-            },
-            "get_processing_options" => Command::GetProcessingOptions,
+        match name.as_str() {
+            "select" => Ok(Command::Select {
+                application: parts[1].to_vec_u8()
+            }),
+            "get_processing_options" => Ok(Command::GetProcessingOptions),
             "generate_ac" => {
                 let mut cdol = None;
                 if parts.len() > 2 {
-                    cdol = Some(str_to_vec_u8(parts[2]));
+                    cdol = Some(parts[2].to_vec_u8());
                 }
-                Command::GenerateAC {
+                Ok(Command::GenerateAC {
                     cryptogram_type: CryptogramType::from_str(parts[1]),
                     cdol,
-                }
+                })
             }
-            "get_data" => Command::GetData {
-                tag: str_to_u16(parts[1])
-            },
-            "put_data" => Command::PutData {
-                tag: str_to_u16(parts[1]),
-                value: str_to_vec_u8(parts[2]),
-            },
-            "read_record" => Command::ReadRecord {
-                record: str_to_u8(parts[1]),
-                sfi: str_to_u8(parts[2]),
-            },
-            _ => panic!("Unknown command when parsing file")
+            "get_data" => Ok(Command::GetData {
+                tag: parts[1].to_u16()
+            }),
+            "put_data" => Ok(Command::PutData {
+                tag: parts[1].to_u16(),
+                value: parts[2].to_vec_u8(),
+            }),
+            "read_record" => Ok(Command::ReadRecord {
+                record: parts[1].to_u8(),
+                sfi: parts[2].to_u8(),
+            }),
+            _ => Err("Unknown command")
         }
     }
+}
+
+pub fn read_command() -> Option<Command> {
+    let mut buffer = String::new();
+    print!("> ");
+    io::stdout().flush();
+    io::stdin().read_line(&mut buffer);
+    let input = buffer.trim();
+    match input {
+        "\n" => None,
+        "help" => show_help(),
+        _ => Command::from_str(String::from(input)).ok(),
+    }
+}
+
+fn show_help() {}
+
+pub fn read_hex_input(question: &'static str) -> Vec<u8> {
+    let mut buffer = String::new();
+    print!("{}", question);
+    io::stdout().flush();
+    io::stdin().read_line(&mut buffer);
+    hex::decode(buffer.trim()).expect("Not a hex string")
 }
