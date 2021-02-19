@@ -1,7 +1,10 @@
-use structopt::StructOpt;
 use std::path::PathBuf;
+
 use hex::FromHex;
+use structopt::StructOpt;
+
 use crate::CryptogramType;
+use crate::utils::*;
 
 #[derive(StructOpt)]
 pub struct Emv {
@@ -30,7 +33,7 @@ pub enum Command {
     },
     GenerateAC {
         cryptogram_type: CryptogramType,
-        cdol: Vec<u8>,
+        cdol: Option<Vec<u8>>,
     },
     PutData {
         tag: u16,
@@ -48,14 +51,30 @@ impl Command {
 
         match name {
             "select" => Command::Select {
-                application: Vec::from_hex(parts[1]).expect("Error reading Application")
+                application: str_to_vec_u8(parts[1])
             },
             "get_processing_options" => Command::GetProcessingOptions,
-            "generate_ac" => Command::GenerateAC {
-                cryptogram_type: CryptogramType::from_str(parts[1]),
-                cdol: Vec::from_hex(parts[2]).expect("Error reading CDOL value"),
+            "generate_ac" => {
+                let mut cdol = None;
+                if parts.len() > 2 {
+                    cdol = Some(str_to_vec_u8(parts[2]));
+                }
+                Command::GenerateAC {
+                    cryptogram_type: CryptogramType::from_str(parts[1]),
+                    cdol,
+                }
+            }
+            "get_data" => Command::GetData {
+                tag: str_to_u16(parts[1])
             },
-            // "put_data" => Command::PutData { tag: Vec::from_hex(parts[1]).expect("banana") }
+            "put_data" => Command::PutData {
+                tag: str_to_u16(parts[1]),
+                value: str_to_vec_u8(parts[2]),
+            },
+            "read_record" => Command::ReadRecord {
+                record: str_to_u8(parts[1]),
+                sfi: str_to_u8(parts[2]),
+            },
             _ => panic!("Unknown command when parsing file")
         }
     }

@@ -9,7 +9,7 @@ use std::process;
 use hex::FromHex;
 use structopt::StructOpt;
 
-use emv::{Command, Mode, Emv};
+use emv::{Command, Mode, Emv, CryptogramType};
 
 fn main() {
     emv::announcement();
@@ -29,6 +29,11 @@ fn main() {
     }
 }
 
+fn shell(card: pcsc::Card) {
+    // Read line by line and dispatch to execute_command
+    println!("Shell mode")
+}
+
 fn run(input: PathBuf, card: pcsc::Card) {
     let file = File::open(input).expect("deu ruim");
     for line in io::BufReader::new(file).lines() {
@@ -43,16 +48,18 @@ fn execute_command(command: Command, card: &pcsc::Card) {
     match command {
         Command::Select { application } => emv::select_application(card, application),
         Command::GetProcessingOptions => emv::get_processing_options(card),
-        Command::GenerateAC { cryptogram_type, cdol } => emv::generate_ac(card, cryptogram_type, cdol),
-        Command::PutData { tag, value } => emv::put_data(card, tag, value),
+        Command::GenerateAC { cryptogram_type, cdol } => {
+            match cryptogram_type {
+                CryptogramType::TC => emv::generate_ac(card, cryptogram_type, read_input("Input the CDOL2 value: ")),
+                _ => emv::generate_ac(card, cryptogram_type, cdol.unwrap()),
+            }
+        }
+        Command::PutData { tag, value } => emv::put_data_secure(card, tag, value, read_input("Input the MAC: ")),
         Command::GetData { tag } => emv::get_data(card, tag),
-        _ => panic!("No matching command found")
+        Command::ReadRecord { record, sfi } => emv::read_record(&card, record, sfi),
     }
 }
 
-fn shell(card: pcsc::Card) {
-    println!("Shell mode")
-}
 
 fn read_input(question: &'static str) -> Vec<u8> {
     let mut buffer = String::new();

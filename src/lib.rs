@@ -12,9 +12,6 @@ mod utils;
 mod banner;
 mod cli;
 
-pub const MASTERCARD_MAESTRO: [u8; 7] = [0xA0, 0x00, 0x00, 0x00, 0x04, 0x30, 0x60];
-pub const MASTERCARD_CREDIT: [u8; 7] = [0xA0, 0x00, 0x00, 0x00, 0x04, 0x10, 0x10];
-
 #[derive(Debug)]
 pub enum CryptogramType {
     AAC,
