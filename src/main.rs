@@ -64,5 +64,3 @@ fn execute_command(command: Command, card: &pcsc::Card) {
         Command::ReadRecord { record, sfi } => emv::read_record(&card, record, sfi),
     }
 }
-
-
