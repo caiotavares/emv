@@ -54,9 +54,9 @@ fn execute_command(command: Command, card: &pcsc::Card) {
         Command::Select { application } => emv::select_application(card, application),
         Command::GetProcessingOptions => emv::get_processing_options(card),
         Command::GenerateAC { cryptogram_type, cdol } => {
-            match cryptogram_type {
-                CryptogramType::TC => emv::generate_ac(card, cryptogram_type, cli::read_hex_input("Input the CDOL2 value: ")),
-                _ => emv::generate_ac(card, cryptogram_type, cdol.unwrap()),
+            match cdol {
+                Some(cdol_value) => emv::generate_ac(card, cryptogram_type, cdol_value),
+                None => emv::generate_ac(card, cryptogram_type, cli::read_hex_input("Input the CDOL value: ")),
             }
         }
         Command::PutData { tag, value } => emv::put_data_secure(card, tag, value, cli::read_hex_input("Input the MAC: ")),
