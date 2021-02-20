@@ -34,7 +34,7 @@ emv currently the following subcommands
 | subcommand | arguments        |
 | ---------- | ---------------- |
 | `shell`    |                  |
-| `run`      | `--input <file>` |
+| `run`      | `<input>`        |
 
 Use `shell` if you want `emv` to open a connection with a card and keep listening for APDU commands on the command-line.
 
