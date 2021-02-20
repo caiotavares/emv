@@ -5,8 +5,8 @@ use std::path::PathBuf;
 use hex::FromHex;
 use structopt::StructOpt;
 
-use crate::{CryptogramType, banner};
 use crate::utils::Hexadecimal;
+use ::{CryptogramType, banner};
 
 #[derive(StructOpt)]
 pub struct Emv {
@@ -48,7 +48,7 @@ pub enum Command {
 }
 
 impl Command {
-    pub fn from_str(str: String) -> Result<Command, &'static str> {
+    pub fn from_str(str: String) -> Result<Command, String> {
         let parts: Vec<&str> = str.trim().split(' ').collect();
         let name = parts[0].to_lowercase();
 
@@ -79,7 +79,7 @@ impl Command {
                 sfi: parts[2].to_u8(),
             }),
             "pin_unblock" => Ok(Command::PinUnblock),
-            _ => Err(name.as_str())
+            _ => Err(name)
         }
     }
 }

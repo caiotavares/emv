@@ -2,9 +2,12 @@
 name = "emv"
 version = "0.1.0"
 authors = ["Caio Tavares <caio.tavares11@gmail.com>"]
-edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "MIT"
+description = "emv is a tool to send/receive APDU commands with smartcards that follow EMV specification"
+readme = "README.md"
+repository = "https://github.com/caiotavares/emv"
+keywords = ["emv", "apdu", "pcsc", "mastercard", "visa"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 pcsc = { version = "2.4.0" }

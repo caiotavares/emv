@@ -1,3 +1,7 @@
+extern crate hex;
+extern crate pcsc;
+pub extern crate structopt;
+
 use capdu::APDU;
 pub use connection::connect;
 use rapdu::{RAPDU, Status};
@@ -8,8 +12,8 @@ mod capdu;
 mod rapdu;
 mod connection;
 mod utils;
-mod banner;
 pub mod cli;
+mod banner;
 
 #[derive(Debug)]
 pub enum CryptogramType {

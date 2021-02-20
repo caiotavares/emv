@@ -1,16 +1,13 @@
-extern crate hex;
-extern crate pcsc;
+extern crate emv;
 
 use std::fs::File;
 use std::io::{self, BufRead, Read, Write};
 use std::path::PathBuf;
 use std::process;
 
-use hex::FromHex;
-use structopt::StructOpt;
-
+use cli::{Command, Emv, Mode};
 use emv::cli;
-use emv::cli::{Command, Emv, Mode};
+use emv::structopt::StructOpt;
 
 fn main() {
     cli::announcement();
