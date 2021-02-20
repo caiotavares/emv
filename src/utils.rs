@@ -40,7 +40,7 @@ impl Hexadecimal for &str {
     }
 
     fn to_u16(&self) -> u16 {
-        let data = Vec::from_hex(self).expect("Unable to parse string to u8");
+        let data = Vec::from_hex(self).expect("Unable to parse string to u16");
         assert_eq!(data.len(), 2);
         ((data[0] as u16) << 8) & (data[1] as u16)
     }

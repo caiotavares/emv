@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use hex::FromHex;
 use structopt::StructOpt;
 
-use crate::CryptogramType;
+use crate::{CryptogramType, banner};
 use crate::utils::Hexadecimal;
 
 #[derive(StructOpt)]
@@ -44,6 +44,7 @@ pub enum Command {
     GetData {
         tag: u16
     },
+    PinUnblock,
 }
 
 impl Command {
@@ -77,9 +78,14 @@ impl Command {
                 record: parts[1].to_u8(),
                 sfi: parts[2].to_u8(),
             }),
-            _ => Err("Unknown command")
+            "pin_unblock" => Ok(Command::PinUnblock),
+            _ => Err(name.as_str())
         }
     }
+}
+
+pub fn announcement() {
+    println!("{}", banner::BANNER);
 }
 
 pub fn read_command() -> Option<Command> {
@@ -90,12 +96,9 @@ pub fn read_command() -> Option<Command> {
     let input = buffer.trim();
     match input {
         "\n" => None,
-        "help" => show_help(),
         _ => Command::from_str(String::from(input)).ok(),
     }
 }
-
-fn show_help() {}
 
 pub fn read_hex_input(question: &'static str) -> Vec<u8> {
     let mut buffer = String::new();

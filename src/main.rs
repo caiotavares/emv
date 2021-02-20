@@ -9,11 +9,11 @@ use std::process;
 use hex::FromHex;
 use structopt::StructOpt;
 
+use emv::cli;
 use emv::cli::{Command, Emv, Mode};
-use emv::{cli, CryptogramType};
 
 fn main() {
-    emv::announcement();
+    cli::announcement();
     let card = emv::connect();
     match card {
         Some(card) => {
@@ -33,7 +33,7 @@ fn main() {
 fn shell(card: pcsc::Card) {
     loop {
         cli::read_command()
-            .map(|cmd| execute_command(cmd, &card));
+            .map(|cmd| execute(cmd, &card));
     }
 }
 
@@ -42,25 +42,36 @@ fn run(input: PathBuf, card: pcsc::Card) {
     for line in io::BufReader::new(file).lines() {
         if let Ok(cmd) = line {
             match Command::from_str(cmd) {
-                Ok(command) => execute_command(command, &card),
-                Err(error) => eprintln!("Error interpreting command. Error {:?}", error),
+                Ok(command) => execute(command, &card),
+                Err(error) => eprintln!("Error parsing command {:?}", error),
             }
         }
     }
 }
 
-fn execute_command(command: Command, card: &pcsc::Card) {
+fn execute(command: Command, card: &pcsc::Card) {
     match command {
-        Command::Select { application } => emv::select_application(card, application),
-        Command::GetProcessingOptions => emv::get_processing_options(card),
-        Command::GenerateAC { cryptogram_type, cdol } => {
-            match cdol {
-                Some(cdol_value) => emv::generate_ac(card, cryptogram_type, cdol_value),
-                None => emv::generate_ac(card, cryptogram_type, cli::read_hex_input("Input the CDOL value: ")),
-            }
+        Command::Select { application } => {
+            emv::select_application(card, application);
         }
-        Command::PutData { tag, value } => emv::put_data_secure(card, tag, value, cli::read_hex_input("Input the MAC: ")),
-        Command::GetData { tag } => emv::get_data(card, tag),
-        Command::ReadRecord { record, sfi } => emv::read_record(&card, record, sfi),
+        Command::GetProcessingOptions => {
+            emv::get_processing_options(card);
+        }
+        Command::GenerateAC { cryptogram_type, cdol } => {
+            let cdol_value = cdol.unwrap_or_else(|| { cli::read_hex_input("Input the CDOL value: ") });
+            emv::generate_ac(card, cryptogram_type, cdol_value);
+        }
+        Command::PutData { tag, value } => {
+            emv::put_data(card, tag, value, cli::read_hex_input("Input the MAC: "));
+        }
+        Command::GetData { tag } => {
+            emv::get_data(card, tag);
+        }
+        Command::ReadRecord { record, sfi } => {
+            emv::read_record(&card, record, sfi);
+        }
+        Command::PinUnblock => {
+            emv::unblock_pin(&card, cli::read_hex_input("Input the MAC: "));
+        }
     }
 }
