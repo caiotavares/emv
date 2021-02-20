@@ -13,11 +13,11 @@ Requirements
 Installing
 ----------
 
+### Building from source
+
 ```shell
 git clone git@github.com:caiotavares/emv.git
-cd emv
-cargo build --release
-./target/release/emv
+cargo install --path ./emv
 ```
 
 Usage

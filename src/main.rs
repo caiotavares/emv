@@ -1,15 +1,12 @@
-extern crate hex;
-extern crate pcsc;
-extern crate structopt;
-
 use std::fs::File;
 use std::io::{self, BufRead, Read, Write};
 use std::path::PathBuf;
 use std::process;
 
+use structopt::StructOpt;
+
 use crate::cli::interface::{Command, Emv, Mode};
 use crate::connection::usb;
-use crate::structopt::StructOpt;
 
 mod apdu;
 mod cli;

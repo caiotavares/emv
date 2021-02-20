@@ -1,7 +1,7 @@
 use std::io;
 use std::io::Write;
 
-use cli::interface::Command;
+use crate::cli::interface::Command;
 
 mod banner;
 pub mod interface;
