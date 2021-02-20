@@ -1,36 +1,10 @@
 use crate::apdu::capdu;
-use crate::apdu::capdu::APDU;
+use crate::apdu::capdu::{APDU, CryptogramType};
 use crate::apdu::rapdu::{RAPDU, Status};
 use crate::cli::interface::{Command, Emv, Mode};
 use crate::connection::usb;
 use crate::structopt::StructOpt;
 use crate::tlv::parser::TLV;
-
-#[derive(Debug)]
-pub enum CryptogramType {
-    AAC,
-    ARQC,
-    TC,
-}
-
-impl CryptogramType {
-    pub fn to_reference_control(&self) -> u8 {
-        match self {
-            CryptogramType::AAC => 0x00,
-            CryptogramType::ARQC => 0x80,
-            CryptogramType::TC => 0x40
-        }
-    }
-
-    pub fn from_str(str: &str) -> CryptogramType {
-        match str {
-            "AAC" => CryptogramType::AAC,
-            "ARQC" => CryptogramType::ARQC,
-            "TC" => CryptogramType::TC,
-            _ => panic!("Unknown cryptogram type")
-        }
-    }
-}
 
 fn send(card: &pcsc::Card, apdu: APDU) {
     usb::transmit(card, &apdu)

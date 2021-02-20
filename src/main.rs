@@ -16,7 +16,7 @@ mod cli;
 mod connection;
 mod tlv;
 mod utils;
-mod library;
+mod controller;
 
 fn main() {
     let args: Emv = Emv::from_args();
@@ -58,26 +58,26 @@ fn run(input: PathBuf, card: pcsc::Card) {
 fn execute(command: Command, card: &pcsc::Card) {
     match command {
         Command::Select { application } => {
-            library::select_application(card, application);
+            controller::select_application(card, application);
         }
         Command::GetProcessingOptions => {
-            library::get_processing_options(card);
+            controller::get_processing_options(card);
         }
         Command::GenerateAC { cryptogram_type, cdol } => {
             let cdol_value = cdol.unwrap_or_else(|| { cli::read_hex_input("Input the CDOL value: ") });
-            library::generate_ac(card, cryptogram_type, cdol_value);
+            controller::generate_ac(card, cryptogram_type, cdol_value);
         }
         Command::PutData { tag, value } => {
-            library::put_data(card, tag, value, cli::read_hex_input("Input the MAC: "));
+            controller::put_data(card, tag, value, cli::read_hex_input("Input the MAC: "));
         }
         Command::GetData { tag } => {
-            library::get_data(card, tag);
+            controller::get_data(card, tag);
         }
         Command::ReadRecord { record, sfi } => {
-            library::read_record(&card, record, sfi);
+            controller::read_record(&card, record, sfi);
         }
         Command::PinUnblock => {
-            library::unblock_pin(&card, cli::read_hex_input("Input the MAC: "));
+            controller::unblock_pin(&card, cli::read_hex_input("Input the MAC: "));
         }
     }
 }

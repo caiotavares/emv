@@ -3,8 +3,8 @@ use std::path::PathBuf;
 use hex::FromHex;
 use structopt::StructOpt;
 
-use crate::library::CryptogramType;
 use crate::utils::extension::Hexadecimal;
+use apdu::capdu::CryptogramType;
 
 #[derive(StructOpt)]
 pub struct Emv {

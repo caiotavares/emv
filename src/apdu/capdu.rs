@@ -1,6 +1,5 @@
 use std::borrow::Borrow;
 
-use crate::library::CryptogramType;
 use crate::utils::extension::Splitable;
 
 #[derive(Debug)]
@@ -33,6 +32,32 @@ impl APDU {
 
     pub fn with_length(&self, length: u8) -> APDU {
         APDU::new(self.name, self.cla, self.ins, self.p1, self.p2, Some(length), None, None)
+    }
+}
+
+#[derive(Debug)]
+pub enum CryptogramType {
+    AAC,
+    ARQC,
+    TC,
+}
+
+impl CryptogramType {
+    pub fn to_reference_control(&self) -> u8 {
+        match self {
+            CryptogramType::AAC => 0x00,
+            CryptogramType::ARQC => 0x80,
+            CryptogramType::TC => 0x40
+        }
+    }
+
+    pub fn from_str(str: &str) -> CryptogramType {
+        match str {
+            "AAC" => CryptogramType::AAC,
+            "ARQC" => CryptogramType::ARQC,
+            "TC" => CryptogramType::TC,
+            _ => panic!("Unknown cryptogram type")
+        }
     }
 }
 
