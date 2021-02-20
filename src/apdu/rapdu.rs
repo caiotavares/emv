@@ -1,4 +1,4 @@
-use crate::utils::Extendable;
+use crate::utils::extension::Extendable;
 
 #[derive(Debug)]
 pub struct RAPDU {

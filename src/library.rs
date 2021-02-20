@@ -1,19 +1,10 @@
-extern crate hex;
-extern crate pcsc;
-pub extern crate structopt;
-
-use capdu::APDU;
-pub use connection::connect;
-use rapdu::{RAPDU, Status};
-use tlv::TLV;
-
-mod tlv;
-mod capdu;
-mod rapdu;
-mod connection;
-mod utils;
-pub mod cli;
-mod banner;
+use crate::apdu::capdu;
+use crate::apdu::capdu::APDU;
+use crate::apdu::rapdu::{RAPDU, Status};
+use crate::cli::interface::{Command, Emv, Mode};
+use crate::connection::usb;
+use crate::structopt::StructOpt;
+use crate::tlv::parser::TLV;
 
 #[derive(Debug)]
 pub enum CryptogramType {
@@ -42,14 +33,14 @@ impl CryptogramType {
 }
 
 fn send(card: &pcsc::Card, apdu: APDU) {
-    connection::transmit(card, &apdu)
+    usb::transmit(card, &apdu)
         .map(|response| {
             match response {
                 RAPDU { status: Status::ResponseAvailable { length }, .. } => {
                     read_response(card, length);
                 }
                 RAPDU { status: Status::WrongLengthLe { length }, .. } => {
-                    connection::transmit(card, &apdu.with_length(length));
+                    usb::transmit(card, &apdu.with_length(length));
                 }
                 _ => {
                     response;

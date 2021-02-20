@@ -1,7 +1,7 @@
 use std::borrow::Borrow;
 
-use crate::CryptogramType;
-use crate::utils::Splitable;
+use crate::library::CryptogramType;
+use crate::utils::extension::Splitable;
 
 #[derive(Debug)]
 pub struct APDU {

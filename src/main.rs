@@ -1,20 +1,28 @@
-extern crate emv;
+extern crate hex;
+extern crate pcsc;
+extern crate structopt;
 
 use std::fs::File;
 use std::io::{self, BufRead, Read, Write};
 use std::path::PathBuf;
 use std::process;
 
-use cli::{Command, Emv, Mode};
-use emv::cli;
-use emv::structopt::StructOpt;
+use crate::cli::interface::{Command, Emv, Mode};
+use crate::connection::usb;
+use crate::structopt::StructOpt;
+
+mod apdu;
+mod cli;
+mod connection;
+mod tlv;
+mod utils;
+mod library;
 
 fn main() {
-    cli::announcement();
-    let card = emv::connect();
+    let args: Emv = Emv::from_args();
+    let card = usb::connect();
     match card {
         Some(card) => {
-            let args: Emv = Emv::from_args();
             match args.mode {
                 Mode::Shell => { shell(card) }
                 Mode::Run { input } => run(input, card)
@@ -28,6 +36,7 @@ fn main() {
 }
 
 fn shell(card: pcsc::Card) {
+    cli::announcement();
     loop {
         cli::read_command()
             .map(|cmd| execute(cmd, &card));
@@ -49,26 +58,26 @@ fn run(input: PathBuf, card: pcsc::Card) {
 fn execute(command: Command, card: &pcsc::Card) {
     match command {
         Command::Select { application } => {
-            emv::select_application(card, application);
+            library::select_application(card, application);
         }
         Command::GetProcessingOptions => {
-            emv::get_processing_options(card);
+            library::get_processing_options(card);
         }
         Command::GenerateAC { cryptogram_type, cdol } => {
             let cdol_value = cdol.unwrap_or_else(|| { cli::read_hex_input("Input the CDOL value: ") });
-            emv::generate_ac(card, cryptogram_type, cdol_value);
+            library::generate_ac(card, cryptogram_type, cdol_value);
         }
         Command::PutData { tag, value } => {
-            emv::put_data(card, tag, value, cli::read_hex_input("Input the MAC: "));
+            library::put_data(card, tag, value, cli::read_hex_input("Input the MAC: "));
         }
         Command::GetData { tag } => {
-            emv::get_data(card, tag);
+            library::get_data(card, tag);
         }
         Command::ReadRecord { record, sfi } => {
-            emv::read_record(&card, record, sfi);
+            library::read_record(&card, record, sfi);
         }
         Command::PinUnblock => {
-            emv::unblock_pin(&card, cli::read_hex_input("Input the MAC: "));
+            library::unblock_pin(&card, cli::read_hex_input("Input the MAC: "));
         }
     }
 }

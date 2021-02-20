@@ -1,8 +1,6 @@
-extern crate pcsc;
-
-use super::capdu::APDU;
-use super::rapdu::{RAPDU, Status};
-use self::pcsc::*;
+use crate::apdu::capdu::APDU;
+use crate::apdu::rapdu::{RAPDU, Status};
+use crate::pcsc::*;
 
 pub fn transmit(card: &Card, apdu: &APDU) -> Result<RAPDU, &'static str> {
     let mut buffer = [0; MAX_BUFFER_SIZE];
