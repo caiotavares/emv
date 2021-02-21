@@ -21,12 +21,9 @@ impl APDU {
 
     pub fn to_array(&self) -> Vec<u8> {
         let mut data = [self.cla, self.ins, self.p1, self.p2].to_vec();
-        self.lc.map(|value| { data.extend(&[value]) });
-        if self.data.is_some() {
-            let mut other = self.data.clone().unwrap();
-            data.append(&mut other)
-        }
-        self.le.map(|value| { data.extend(&[value]) });
+        self.lc.map(|value| data.extend(&[value]));
+        self.data.as_ref().map(|value | data.extend(value));
+        self.le.map(|value| data.extend(&[value]));
         data
     }
 

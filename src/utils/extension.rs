@@ -1,4 +1,4 @@
-use hex::FromHex;
+use hex::{FromHex, FromHexError};
 
 pub trait Extendable {
     fn extend(&self, value: u8) -> u16;
@@ -45,7 +45,7 @@ impl Hexadecimal for &str {
         ((data[0] as u16) << 8) | (data[1] as u16)
     }
 
-    fn to_vec_u8(&self) -> Vec<u8> {
-        Vec::from_hex(self).expect("Unable parse string to Vec<u8>")
+    fn to_vec_u8(&self) -> Result<Vec<u8>, FromHexError> {
+        Vec::from_hex(self)
     }
 }
