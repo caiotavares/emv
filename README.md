@@ -13,6 +13,15 @@ Requirements
 Installing
 ----------
 
+### Homebrew
+
+_Currently only supports macOS_
+
+```shell
+brew tap caiotavares/emv
+brew install emv
+```
+
 ### Building from source
 
 ```shell
