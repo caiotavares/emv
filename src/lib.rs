@@ -1,11 +1,13 @@
-use structopt::StructOpt;
-
 use crate::apdu::capdu;
 use crate::apdu::capdu::{APDU, CryptogramType};
 use crate::apdu::rapdu::{RAPDU, Status};
-use crate::cli::interface::{Command, Emv, Mode};
 use crate::connection::usb;
-use crate::tlv::parser::TLV;
+
+pub mod apdu;
+pub mod cli;
+pub mod connection;
+pub mod tlv;
+pub mod utils;
 
 fn send(card: &pcsc::Card, apdu: APDU) {
     usb::transmit(card, &apdu)
