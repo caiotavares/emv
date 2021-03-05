@@ -4,8 +4,8 @@ use std::io::Write;
 use termion::color;
 
 use crate::apdu::capdu::APDU;
+use crate::apdu::Command;
 use crate::apdu::rapdu::RAPDU;
-use crate::cli::interface::Command;
 
 mod banner;
 pub mod interface;

@@ -3,7 +3,7 @@ use structopt::StructOpt;
 use apdu::capdu;
 use apdu::capdu::{APDU, CryptogramType};
 use apdu::rapdu::{RAPDU, Status};
-use cli::interface::{Command, Emv, Mode};
+use cli::interface::{Emv, Mode};
 use connection::usb;
 use tlv::parser::TLV;
 

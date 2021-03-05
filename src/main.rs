@@ -5,9 +5,10 @@ use std::process;
 
 use structopt::StructOpt;
 
-use emv::cli::interface::{Command, Emv, Mode};
-use emv::connection::usb;
+use emv::apdu::Command;
 use emv::cli;
+use emv::cli::interface::{Emv, Mode};
+use emv::connection::usb;
 
 fn main() {
     let args: Emv = Emv::from_args();
