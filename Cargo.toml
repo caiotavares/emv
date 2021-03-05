@@ -14,3 +14,4 @@ edition = "2018"
 pcsc = { version = "2.4.0" }
 structopt = "0.3.21"
 hex = "0.4.2"
+termion = "1.5.6"
