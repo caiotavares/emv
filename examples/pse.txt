@@ -1,0 +1,4 @@
+select 315041592E5359532E4444463031
+read_record 01 0C
+select A0000004945010
+read_record 05 0C

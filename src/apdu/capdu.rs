@@ -67,7 +67,7 @@ pub fn select(aid: Vec<u8>) -> APDU {
 }
 
 pub fn get_response(length: u8) -> APDU {
-    APDU::new("GET RESPONSE", 0xA0, 0xC0, 0x00, 0x00, Some(length), None, None)
+    APDU::new("GET RESPONSE", 0x00, 0xC0, 0x00, 0x00, Some(length), None, None)
 }
 
 pub fn get_data(tag: u16) -> APDU {
