@@ -111,8 +111,12 @@ pub fn offline_change_pin(new_pin: Vec<u8>) -> APDU {
 }
 
 pub fn verify(pin: Vec<u8>) -> APDU {
-    let length = pin.len() as u8;
-    APDU::new("VERIFY", 0x00, 0x20, 0x00, 0x80, Some(length), Some(pin), None)
+    let mut data = vec!(0x24);
+    let suffix = vec!(0xFF, 0xFF, 0xFF, 0xFF, 0xFF);
+    data.extend(pin);
+    data.extend(suffix);
+    let length = data.len() as u8;
+    APDU::new("VERIFY", 0x00, 0x20, 0x00, 0x80, Some(length), Some(data), None)
 }
 
 pub fn application_block(mac: Vec<u8>) -> APDU {

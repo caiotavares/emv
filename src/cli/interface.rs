@@ -42,6 +42,9 @@ pub enum Command {
     GetData {
         tag: u16
     },
+    Verify {
+        pin: Vec<u8>
+    },
     PinUnblock,
 }
 
@@ -75,6 +78,9 @@ impl Command {
             "read_record" => Ok(Command::ReadRecord {
                 record: parts[1].to_u8(),
                 sfi: parts[2].to_u8(),
+            }),
+            "verify" => Ok(Command::Verify {
+                pin: parts[1].to_vec_u8()
             }),
             "pin_unblock" => Ok(Command::PinUnblock),
             _ => Err(name)
