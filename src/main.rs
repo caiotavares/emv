@@ -73,8 +73,14 @@ fn execute(command: Command, card: &pcsc::Card) {
         Command::ReadRecord { record, sfi } => {
             controller::read_record(&card, record, sfi);
         }
+        Command::Verify { pin } => {
+            controller::verify(&card, pin);
+        }
         Command::PinUnblock => {
             controller::unblock_pin(&card, cli::read_hex_input("Input the MAC: "));
+        }
+        Command::PinChange { pin } => {
+            controller::change_pin(&card, pin, cli::read_hex_input("Input the MAC: "));
         }
     }
 }

@@ -54,15 +54,19 @@ Some commands require one or two arguments to be provided and for special cases 
 emv will prompt the user to input the cryptographic MAC (message authentication code), since these commands modify card
 information.
 
-| APDU                      | Arguments            | Format                         | Prompts for   |
-| ---------                 | ---------            | -------------                  | ------------- |
-| `SELECT`                  | `<aid>`              | `<hex string>`                 |               | 
-| `GET_PROCESSING_OPTIONS`  |                      |                                |               |
-| `READ_RECORD`             | `<record>` `<sfi>`   | `<hex string>` `<hex string>`  |               |
-| `GET_DATA`                | `<tag>`              | `<hex string>`                 |               |
-| `PUT_DATA`                | `<tag>` `<value>`    | `<hex string>`                 |     MAC       |  
-| `GENERATE_AC`             | `<type>` `<cdol>`    | `ARQC/TC/ACC`  `<hex string>`  |               |
-| `PIN_UNBLOCK`             |                      |                                |     MAC       |
+| APDU                     | Arguments          | Format                        | Prompts for |
+|--------------------------|--------------------|-------------------------------|-------------|
+| `SELECT`                 | `<aid>`            | `<hex string>`                |             | 
+| `GET_PROCESSING_OPTIONS` |                    |                               |             |
+| `READ_RECORD`            | `<record>` `<sfi>` | `<hex string>` `<hex string>` |             |
+| `GET_DATA`               | `<tag>`            | `<hex string>`                |             |
+| `PUT_DATA`               | `<tag>` `<value>`  | `<hex string>`                | MAC         |  
+| `GENERATE_AC`            | `<type>` `<cdol>`  | `ARQC/TC/ACC`  `<hex string>` |             |
+| `PIN_UNBLOCK`            |                    |                               | MAC         |
+| `PIN_CHANGE`*            | `<pin>`            | `<hex_string>`                | MAC         |
+| `VERIFY`                 | `<pin>`            | `<hex_string>`                |             |
+
+\* *The input PIN should be encrypted by the SMC key*
 
 *Example 1:*
 Selecting a Mastercard Credit application, fetching the processing options and requesting an ARQC based on a CDOL1:
