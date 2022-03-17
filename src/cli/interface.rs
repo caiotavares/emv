@@ -46,6 +46,9 @@ pub enum Command {
         pin: Vec<u8>
     },
     PinUnblock,
+    PinChange {
+        pin: Vec<u8>
+    }
 }
 
 impl Command {
@@ -83,6 +86,9 @@ impl Command {
                 pin: parts[1].to_vec_u8()
             }),
             "pin_unblock" => Ok(Command::PinUnblock),
+            "pin_change" => Ok(Command::PinChange {
+                pin: parts[1].to_vec_u8()
+            }),
             _ => Err(name)
         }
     }

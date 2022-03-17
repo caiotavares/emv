@@ -100,9 +100,16 @@ pub fn generate_ac(cryptogram_type: CryptogramType, cdol_data: Vec<u8>) -> APDU 
     APDU::new("GENERATE AC", 0x80, 0xAE, reference_control, 0x00, Some(length), Some(cdol_data), None)
 }
 
-pub fn reset_pin_try_counter(mac: Vec<u8>) -> APDU {
+pub fn pin_unblock(mac: Vec<u8>) -> APDU {
     let length = mac.len() as u8;
     APDU::new("PIN CHANGE/UNBLOCK", 0x84, 0x24, 0x00, 0x00, Some(length), Some(mac), None)
+}
+
+pub fn pin_change(pin: Vec<u8>, mac: Vec<u8>) -> APDU {
+    let mut data = pin.clone();
+    data.extend(mac);
+    let length = data.len() as u8;
+    APDU::new("PIN CHANGE/UNBLOCK", 0x84, 0x24, 0x00, 0x02, Some(length), Some(data), None)
 }
 
 pub fn offline_change_pin(new_pin: Vec<u8>) -> APDU {

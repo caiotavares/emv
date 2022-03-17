@@ -79,5 +79,8 @@ fn execute(command: Command, card: &pcsc::Card) {
         Command::PinUnblock => {
             controller::unblock_pin(&card, cli::read_hex_input("Input the MAC: "));
         }
+        Command::PinChange { pin } => {
+            controller::change_pin(&card, pin, cli::read_hex_input("Input the MAC: "));
+        }
     }
 }

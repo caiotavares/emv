@@ -73,7 +73,12 @@ pub fn generate_ac(card: &pcsc::Card, cryptogram_type: CryptogramType, cdol: Vec
 
 /// **[SECURE]** Resets the PIN Try Counter
 pub fn unblock_pin(card: &pcsc::Card, mac: Vec<u8>) {
-    let apdu = capdu::reset_pin_try_counter(mac);
+    let apdu = capdu::pin_unblock(mac);
+    send(card, apdu)
+}
+
+pub fn change_pin(card: &pcsc::Card, pin: Vec<u8>, mac: Vec<u8>) {
+    let apdu = capdu::pin_change(pin, mac);
     send(card, apdu)
 }
 
