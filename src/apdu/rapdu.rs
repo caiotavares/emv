@@ -1,14 +1,26 @@
 use crate::utils::extension::Extendable;
+use crate::tlv::parser::TLV;
+use std::fmt;
 
 #[derive(Debug)]
 pub struct RAPDU {
     pub status: Status,
-    pub data: Vec<u8>,
+    pub raw: Vec<u8>,
+    pub data: Vec<TLV>
 }
 
 impl RAPDU {
     pub fn new(status: Status, data: &[u8]) -> RAPDU {
-        RAPDU { status, data: Vec::from(data) }
+        RAPDU { status, raw: Vec::from(data), data: TLV::decode(Vec::from(data)),  }
+    }
+}
+
+impl fmt::Display for RAPDU {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let raw_str: Vec<String> = self.raw.iter().map(|a| format!("{:02X}", a)).collect();
+        let data_str: Vec<String> = self.data.iter().map(|a| format!("{}", a)).collect();
+
+        write!(f, "R-APDU: {:?}\n  Raw: 0x{}\n  Data: [\n{}  ]\n", self.status, raw_str.join(""), data_str.join(""))
     }
 }
 

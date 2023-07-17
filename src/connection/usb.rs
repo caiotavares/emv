@@ -18,7 +18,7 @@ pub fn transmit(card: &Card, apdu: &APDU) -> Result<RAPDU, &'static str> {
             else {
                 rapdu = RAPDU::new(Status::new(response[length - 2], response[length - 1]), &response[0..length - 2]);
             }
-            println!("R-APDU: {:02X?}", rapdu);
+            println!("{}", rapdu);
             Ok(rapdu)
         }
         Err(err) => {

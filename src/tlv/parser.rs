@@ -1,4 +1,5 @@
 use crate::utils::extension::Extendable;
+use std::fmt;
 
 #[derive(Debug)]
 pub enum Tag {
@@ -107,6 +108,7 @@ pub struct TLV {
 
 impl TLV {
     pub fn parse(data: Vec<u8>) -> Result<(TLV, Vec<u8>), &'static str> {
+
         if data.len() < 2 {
             return Err("Not enough data to parse TLV!");
         }
@@ -129,15 +131,25 @@ impl TLV {
         let mut result: Vec<TLV> = Vec::new();
         let mut data = data;
 
-        loop {
-            let (tlv, remainder) = TLV::parse(data).unwrap();
-            if !tlv.tag.is_template() {
-                result.push(tlv);
-                if remainder.len() == 0 {
-                    break;
-                } else { data = remainder; }
-            } else { data = tlv.value; }
+        if data.len() > 0 {
+            loop {
+                let (tlv, remainder) = TLV::parse(data).unwrap();
+                if !tlv.tag.is_template() {
+                    result.push(tlv);
+                    if remainder.len() == 0 {
+                        break;
+                    } else { data = remainder; }
+                } else { data = tlv.value; }
+            }
         }
         result
+    }
+}
+
+impl fmt::Display for TLV {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let raw_str: Vec<String> = self.value.iter().map(|a| format!("{:02X}", a)).collect();
+        let value_char: Vec<String> = self.value.iter().map(|a| format!("{}", *a as char)).collect();
+        write!(f, "   > {:?} ({}) = 0x{} | {}\n", self.tag, self.length, raw_str.join(""), value_char.join(""))
     }
 }
