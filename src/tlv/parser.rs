@@ -3,6 +3,8 @@ use std::fmt;
 
 #[derive(Debug)]
 pub enum Tag {
+    ApplicationControlContact,
+    ApplicationControlContactless,
     ApplicationCryptogram,
     ApplicationCurrencyCode,
     ApplicationEffectiveDate,
@@ -54,6 +56,8 @@ impl Tag {
             0x8E => Some(Tag::CardholderVerificationMethodList),
             0x94 => Some(Tag::ApplicationFileLocator),
             0xA5 => Some(Tag::FileControlInformationProprietaryTemplate),
+            0xD5 => Some(Tag::ApplicationControlContact),
+            0xD7 => Some(Tag::ApplicationControlContactless),
             _ => None
         }
     }

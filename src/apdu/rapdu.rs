@@ -26,6 +26,7 @@ impl fmt::Display for RAPDU {
 
 #[derive(Debug)]
 pub enum Status {
+    AuthenticationMethodBlocked,
     ResponseAvailable { length: u8 },
     WrongLengthLe { length: u8 },
     WrongLength,
@@ -35,7 +36,12 @@ pub enum Status {
     InstructionCodeNotSupported,
     SelectedFileInvalidated,
     FileNotFound,
+    IncorrectParameters,
     Ok,
+    VerifyFailed0TriesLeft,
+    VerifyFailed1TryLeft,
+    VerifyFailed2TriesLeft,
+    VerifyFailed3TriesLeft,
     Unknown,
 }
 
@@ -51,10 +57,16 @@ impl Status {
     fn check_sw2(sw: u16) -> Status {
         match sw {
             0x6283 => Status::SelectedFileInvalidated,
+            0x63C0 => Status::VerifyFailed0TriesLeft,
+            0x63C1 => Status::VerifyFailed1TryLeft,
+            0x63C2 => Status::VerifyFailed2TriesLeft,
+            0x63C3 => Status::VerifyFailed3TriesLeft,
             0x6700 => Status::WrongLength,
             0x6982 => Status::SecurityConditionNotSatisfied,
+            0x6983 => Status::AuthenticationMethodBlocked,
             0x6985 => Status::ConditionsOfUseNotSatisfied,
             0x6A82 => Status::FileNotFound,
+            0x6A86 => Status::IncorrectParameters,
             0x6A88 => Status::ReferencedDataNotFound,
             0x6D00 => Status::InstructionCodeNotSupported,
             0x9000 => Status::Ok,
